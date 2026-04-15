@@ -7,5 +7,6 @@ echo ║   短视频数据看板  正在启动...            ║
 echo ╚══════════════════════════════════════════╝
 echo.
 cd /d "%~dp0"
+start http://localhost:3388
 node server.js
 pause
