@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport"/>
+<title>数据录入 - 短视频运营分析系统</title>
+<script src="https://modao.cc/agent-py/static/source/js/tailwindcss.3.4.3.js"></script>
+<script src="https://modao.cc/agent-py/static/source/js/iconify-icon.min.1.0.7.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  body { font-family: 'Inter', 'PingFang SC', sans-serif; background-color: #020617; color: #f8fafc; }
+  .glass-panel { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+  .input-field {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    color: #f8fafc;
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .input-field:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.15); }
+  .input-field::placeholder { color: #475569; }
+  .input-field:disabled { opacity: 0.6; cursor: not-allowed; background: rgba(30,41,59,0.5); }
+  .btn-primary {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    color: white; border: none; border-radius: 0.5rem;
+    padding: 0.75rem 2rem; font-size: 0.875rem; font-weight: 600;
+    cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .toast {
+    position: fixed; top: 1.5rem; right: 1rem; z-index: 9999;
+    padding: 0.875rem 1.25rem; border-radius: 0.75rem;
+    font-size: 0.875rem; font-weight: 500;
+    display: flex; align-items: center; gap: 0.5rem;
+    transform: translateX(120%); transition: transform 0.3s ease;
+    pointer-events: none; max-width: calc(100vw - 2rem);
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.success { background: rgba(16,185,129,0.15); border: 1px solid #10b981; color: #34d399; }
+  .toast.error { background: rgba(239,68,68,0.15); border: 1px solid #ef4444; color: #f87171; }
+
+  /* 手机底部导航 */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(15,23,42,0.95); backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+  }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; color: #64748b; font-size: 10px; text-decoration: none;
+    padding: 0.25rem 0.75rem; border-radius: 0.5rem; transition: color 0.2s;
+    flex: 1;
+  }
+  .bottom-nav a.active { color: #38bdf8; }
+  .bottom-nav a iconify-icon { font-size: 1.25rem; }
+
+  /* PC侧边栏 */
+  .sidebar { display: flex; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .bottom-nav { display: flex; }
+    .main-content { padding-bottom: 5rem !important; }
+    .page-header { padding: 1rem !important; }
+    .page-header h2 { font-size: 1rem !important; }
+    .content-area { padding: 1rem !important; }
+    .grid-2 { grid-template-columns: 1fr 1fr !important; }
+    .grid-3 { grid-template-columns: 1fr 1fr !important; }
+    .grid-4 { grid-template-columns: 1fr 1fr !important; }
+    .submit-row { flex-direction: column !important; gap: 0.75rem !important; }
+    .submit-row .btn-group { width: 100% !important; justify-content: stretch !important; }
+    .submit-row .btn-group button,
+    .submit-row .btn-group .btn-primary { flex: 1 !important; justify-content: center !important; }
+    .header-actions { flex-wrap: wrap; gap: 0.5rem; }
+    .header-actions .server-badge { display: none; }
+  }
+
+  /* 自动计算互动率展示框 */
+  .auto-calc-box {
+    background: rgba(168,85,247,0.08);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+  .auto-calc-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #c084fc;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- 侧边栏（PC） -->
+<aside class="sidebar w-72 glass-panel h-screen flex-col p-6 space-y-8 z-10 shrink-0">
+  <div>
+    <div class="flex items-center space-x-2 mb-8">
+      <iconify-icon class="text-3xl text-sky-400" icon="ri:video-chart-fill"></iconify-icon>
+      <h1 class="text-xl font-bold tracking-tight">DataPulse <span class="text-sky-400">2026</span></h1>
+    </div>
+    <nav class="space-y-1">
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="index.html">
+        <iconify-icon icon="ri:dashboard-3-line"></iconify-icon>
+        <span class="text-sm font-medium">数据看板</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="details.html">
+        <iconify-icon icon="ri:list-unordered"></iconify-icon>
+        <span class="text-sm font-medium">数据明细表</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20" href="input.html">
+        <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+        <span class="text-sm font-medium">数据录入</span>
+      </a>
+    </nav>
+  </div>
+  <div class="mt-auto">
+    <div id="last-record-card" class="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
+      <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">最近录入</p>
+      <p id="last-date" class="text-xs text-slate-300">加载中...</p>
+      <p id="last-plays" class="text-xs text-slate-500 mt-1"></p>
+    </div>
+  </div>
+</aside>
+
+<!-- 主内容 -->
+<main class="flex-1 overflow-y-auto custom-scrollbar main-content">
+  <header class="sticky top-0 z-20 glass-panel px-8 py-4 flex justify-between items-center border-b border-slate-800 page-header header-actions">
+    <div>
+      <h2 class="text-xl font-bold">每日数据录入</h2>
+      <p class="text-xs text-slate-400 mt-1 hidden sm:block">录入后自动保存至数据库，看板实时更新</p>
+    </div>
+    <div id="server-status" class="server-badge flex items-center space-x-2 text-xs px-3 py-1.5 bg-slate-900 rounded-full border border-slate-800">
+      <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+      <span class="text-slate-400">连接中...</span>
+    </div>
+  </header>
+
+  <div class="p-8 max-w-4xl mx-auto content-area">
+    <form id="data-form" autocomplete="off">
+
+      <!-- 基础信息 -->
+      <div class="glass-panel rounded-2xl p-6 mb-5">
+        <h3 class="text-sm font-bold text-sky-400 mb-4 flex items-center gap-2">
+          <iconify-icon icon="ri:calendar-event-line"></iconify-icon> 基础信息
+        </h3>
+        <div class="grid grid-cols-1 gap-4 grid-3" style="grid-template-columns: repeat(3, minmax(0,1fr));">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">发布日期 <span class="text-red-400">*</span></label>
+            <input type="date" name="date" id="date" class="input-field" required/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">视频标题</label>
+            <input type="text" name="title" id="title" class="input-field" placeholder="（选填）视频标题"/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">视频主题</label>
+            <select name="theme" id="theme" class="input-field">
+              <option value="">选择主题</option>
+              <option value="城市烟火">城市烟火</option>
+              <option value="上班通勤">上班通勤</option>
+              <option value="休闲时刻">休闲时刻</option>
+              <option value="停止讨好">停止讨好</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 流量指标 -->
+      <div class="glass-panel rounded-2xl p-6 mb-5">
+        <h3 class="text-sm font-bold text-sky-400 mb-4 flex items-center gap-2">
+          <iconify-icon icon="ri:play-circle-line"></iconify-icon> 流量指标
+        </h3>
+        <div class="grid gap-4 grid-4" style="grid-template-columns: repeat(4, minmax(0,1fr));">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">① 播放量 <span class="text-red-400">*</span></label>
+            <input type="number" name="plays" id="plays" class="input-field" placeholder="e.g. 38500" min="0" required oninput="calcInteraction()"/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">② 点赞量 <span class="text-red-400">*</span></label>
+            <input type="number" name="likes" id="likes" class="input-field" placeholder="e.g. 4200" min="0" required oninput="calcInteraction()"/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">③ 分享量 <span class="text-red-400">*</span></label>
+            <input type="number" name="shares" id="shares" class="input-field" placeholder="e.g. 44" min="0" required oninput="calcInteraction()"/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">④ 收藏量 <span class="text-red-400">*</span></label>
+            <input type="number" name="collects" id="collects" class="input-field" placeholder="e.g. 85" min="0" required oninput="calcInteraction()"/>
+          </div>
+        </div>
+
+        <!-- 互动率自动计算展示 -->
+        <div class="mt-4 auto-calc-box">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                <iconify-icon class="text-purple-400" icon="ri:magic-line"></iconify-icon>
+                ⑪ 平均互动率（自动计算）
+              </p>
+              <p class="text-[10px] text-slate-600 mt-0.5">= (点赞 + 分享 + 收藏) ÷ 播放量 × 100%</p>
+            </div>
+            <div class="text-right">
+              <span class="auto-calc-value" id="interaction-display">—</span>
+              <span class="text-purple-400 text-sm ml-1">%</span>
+            </div>
+          </div>
+          <!-- 隐藏字段，用于提交 -->
+          <input type="hidden" name="avg_interaction" id="avg_interaction" value="0"/>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑩ 总播放量（历史累计）<span class="text-red-400">*</span></label>
+          <div class="flex gap-3">
+            <input type="number" name="total_plays" id="total_plays" class="input-field" placeholder="e.g. 186402  （历史所有播放量的总和）" min="0" required/>
+            <button type="button" onclick="autoCalcTotal()" class="shrink-0 px-4 py-2 bg-slate-800 text-xs text-slate-300 rounded-lg hover:bg-slate-700 transition whitespace-nowrap">
+              自动累加
+            </button>
+          </div>
+          <p class="text-xs text-slate-600 mt-1">也可点击「自动累加」按钮，将根据历史数据自动填入</p>
+        </div>
+      </div>
+
+      <!-- 完播 & 跳出指标 -->
+      <div class="glass-panel rounded-2xl p-6 mb-5">
+        <h3 class="text-sm font-bold text-emerald-400 mb-4 flex items-center gap-2">
+          <iconify-icon icon="ri:checkbox-circle-line"></iconify-icon> 完播 & 跳出指标
+        </h3>
+        <div class="grid gap-4 grid-3" style="grid-template-columns: repeat(3, minmax(0,1fr));">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑤ 完播率 (%) <span class="text-red-400">*</span></label>
+            <input type="number" name="completion_rate" id="completion_rate" class="input-field" placeholder="e.g. 52" min="0" max="100" step="0.1" required/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑥ 2秒跳出率 (%) <span class="text-red-400">*</span></label>
+            <input type="number" name="bounce_2s" id="bounce_2s" class="input-field" placeholder="e.g. 22" min="0" max="100" step="0.1" required/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑦ 5秒完播率 (%) <span class="text-red-400">*</span></label>
+            <input type="number" name="completion_5s" id="completion_5s" class="input-field" placeholder="e.g. 84" min="0" max="100" step="0.1" required/>
+          </div>
+        </div>
+      </div>
+
+      <!-- 播放质量 -->
+      <div class="glass-panel rounded-2xl p-6 mb-5">
+        <h3 class="text-sm font-bold text-purple-400 mb-4 flex items-center gap-2">
+          <iconify-icon icon="ri:time-line"></iconify-icon> 播放质量指标
+        </h3>
+        <div class="grid gap-4 grid-2" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑧ 平均播放占比 (%) <span class="text-red-400">*</span></label>
+            <input type="number" name="avg_play_ratio" id="avg_play_ratio" class="input-field" placeholder="e.g. 82" min="0" max="100" step="0.1" required/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑨ 平均播放时长 (秒) <span class="text-red-400">*</span></label>
+            <input type="number" name="avg_play_duration" id="avg_play_duration" class="input-field" placeholder="e.g. 18.2" min="0" step="0.1" required/>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提交区 -->
+      <div class="flex items-center justify-between flex-wrap submit-row">
+        <div class="text-xs text-slate-500 flex items-center gap-2">
+          <iconify-icon icon="ri:information-line"></iconify-icon>
+          相同日期数据重复录入时将自动覆盖更新
+        </div>
+        <div class="flex gap-3 btn-group">
+          <button type="button" onclick="resetForm()" class="px-5 py-2.5 bg-slate-800 text-slate-300 rounded-lg text-sm hover:bg-slate-700 transition">
+            重置
+          </button>
+          <button type="submit" id="submit-btn" class="btn-primary">
+            <iconify-icon icon="ri:save-3-line"></iconify-icon>
+            保存数据
+          </button>
+        </div>
+      </div>
+
+    </form>
+
+    <!-- 近期数据预览 -->
+    <div class="glass-panel rounded-2xl p-6 mt-6">
+      <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+        <iconify-icon class="text-sky-400" icon="ri:history-line"></iconify-icon> 近期录入记录
+        <span class="ml-auto text-xs text-slate-500 font-normal">最近 5 条</span>
+      </h3>
+      <div class="overflow-x-auto -mx-2 px-2">
+        <table class="w-full text-left text-xs min-w-[500px]">
+          <thead class="text-slate-500 border-b border-slate-800">
+            <tr>
+              <th class="pb-2 pr-4">日期</th>
+              <th class="pb-2 pr-4">播放量</th>
+              <th class="pb-2 pr-4">点赞</th>
+              <th class="pb-2 pr-4">分享</th>
+              <th class="pb-2 pr-4">完播率</th>
+              <th class="pb-2 pr-4">互动率</th>
+              <th class="pb-2">操作</th>
+            </tr>
+          </thead>
+          <tbody id="recent-table" class="divide-y divide-slate-800/50">
+            <tr><td colspan="7" class="py-4 text-center text-slate-600">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 手机底部导航 -->
+<nav class="bottom-nav">
+  <a href="index.html">
+    <iconify-icon icon="ri:dashboard-3-line"></iconify-icon>
+    看板
+  </a>
+  <a href="details.html">
+    <iconify-icon icon="ri:list-unordered"></iconify-icon>
+    明细
+  </a>
+  <a href="input.html" class="active">
+    <iconify-icon icon="ri:add-circle-fill"></iconify-icon>
+    录入
+  </a>
+</nav>
+
+<!-- Toast 通知 -->
+<div id="toast" class="toast">
+  <iconify-icon id="toast-icon" icon="ri:checkbox-circle-line"></iconify-icon>
+  <span id="toast-msg">成功</span>
+</div>
+
+<script>
+const API = 'http://localhost:3388/api';
+
+// ── 初始化 ──────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+  checkServer();
+  loadRecentData();
+});
+
+// ── 自动计算平均互动率 ────────────────────────
+function calcInteraction() {
+  const plays = parseFloat(document.getElementById('plays').value) || 0;
+  const likes = parseFloat(document.getElementById('likes').value) || 0;
+  const shares = parseFloat(document.getElementById('shares').value) || 0;
+  const collects = parseFloat(document.getElementById('collects').value) || 0;
+
+  const display = document.getElementById('interaction-display');
+  const hidden = document.getElementById('avg_interaction');
+
+  if (plays > 0) {
+    const rate = ((likes + shares + collects) / plays * 100).toFixed(2);
+    display.textContent = rate;
+    hidden.value = rate;
+  } else {
+    display.textContent = '—';
+    hidden.value = '0';
+  }
+}
+
+// ── 检查服务状态 ────────────────────────────
+function checkServer() {
+  fetch(`${API}/data/latest`)
+    .then(r => r.json())
+    .then(data => {
+      const el = document.getElementById('server-status');
+      el.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span><span class="text-green-400">已连接</span>`;
+      if (data) {
+        document.getElementById('last-date').textContent = `最近: ${data.date}`;
+        document.getElementById('last-plays').textContent = `播放量: ${data.plays?.toLocaleString()}`;
+      }
+    })
+    .catch(() => {
+      document.getElementById('server-status').innerHTML =
+        `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-400">未连接</span>`;
+      document.getElementById('last-date').textContent = '服务未启动';
+    });
+}
+
+// ── 加载近期记录 ────────────────────────────
+function loadRecentData() {
+  fetch(`${API}/data`)
+    .then(r => r.json())
+    .then(docs => {
+      const recent = docs.slice(-5).reverse();
+      const tbody = document.getElementById('recent-table');
+      if (!recent.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-600">暂无数据</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = recent.map(d => `
+        <tr class="hover:bg-slate-800/30 transition">
+          <td class="py-2 pr-4 text-slate-300">${d.date}</td>
+          <td class="py-2 pr-4 font-mono">${(d.plays||0).toLocaleString()}</td>
+          <td class="py-2 pr-4 font-mono">${(d.likes||0).toLocaleString()}</td>
+          <td class="py-2 pr-4 font-mono text-sky-400">${d.shares||0}</td>
+          <td class="py-2 pr-4 font-mono text-emerald-400">${d.completion_rate||0}%</td>
+          <td class="py-2 pr-4 font-mono text-purple-400">${d.avg_interaction||0}%</td>
+          <td class="py-2">
+            <button onclick="fillForm(${JSON.stringify(d).replace(/"/g,'&quot;')})"
+              class="text-slate-500 hover:text-sky-400 transition">
+              <iconify-icon icon="ri:edit-line"></iconify-icon>
+            </button>
+            <button onclick="deleteRecord('${d._id}')"
+              class="ml-2 text-slate-500 hover:text-red-400 transition">
+              <iconify-icon icon="ri:delete-bin-line"></iconify-icon>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    })
+    .catch(() => {
+      document.getElementById('recent-table').innerHTML =
+        `<tr><td colspan="7" class="py-4 text-center text-slate-600">无法加载数据，请确认服务已启动</td></tr>`;
+    });
+}
+
+// ── 自动累加总播放量 ─────────────────────────
+function autoCalcTotal() {
+  const playsVal = parseFloat(document.getElementById('plays').value) || 0;
+  fetch(`${API}/data`)
+    .then(r => r.json())
+    .then(docs => {
+      const histTotal = docs.reduce((s, d) => s + (d.plays || 0), 0);
+      document.getElementById('total_plays').value = histTotal + playsVal;
+      showToast(`历史 ${histTotal.toLocaleString()} + 今日 ${playsVal.toLocaleString()} = ${(histTotal + playsVal).toLocaleString()}`, 'success');
+    })
+    .catch(() => showToast('自动计算失败，请手动填写', 'error'));
+}
+
+// ── 填充编辑表单 ─────────────────────────────
+function fillForm(data) {
+  Object.keys(data).forEach(k => {
+    const el = document.getElementById(k) || document.querySelector(`[name="${k}"]`);
+    if (el) el.value = data[k];
+  });
+  // 回填后重新计算互动率
+  calcInteraction();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('已加载数据，修改后点击保存即可更新', 'success');
+}
+
+// ── 删除记录 ─────────────────────────────────
+function deleteRecord(id) {
+  if (!confirm('确认删除这条记录？')) return;
+  fetch(`${API}/data/${id}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => { showToast('删除成功', 'success'); loadRecentData(); })
+    .catch(() => showToast('删除失败', 'error'));
+}
+
+// ── 重置表单 ─────────────────────────────────
+function resetForm() {
+  document.getElementById('data-form').reset();
+  document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('interaction-display').textContent = '—';
+  document.getElementById('avg_interaction').value = '0';
+}
+
+// ── 提交表单 ─────────────────────────────────
+document.getElementById('data-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<iconify-icon icon="ri:loader-4-line" class="animate-spin"></iconify-icon> 保存中...`;
+
+  const formData = new FormData(e.target);
+  const body = {};
+  formData.forEach((v, k) => {
+    const num = parseFloat(v);
+    body[k] = (v !== '' && !isNaN(num) && k !== 'title' && k !== 'theme' && k !== 'date' && k !== 'status')
+      ? num : v;
+  });
+
+  // 自动设置状态
+  if (!body.status) {
+    body.status = body.completion_rate >= 50 || body.shares >= 40 ? '爆款' :
+                  body.plays < 10000 ? '低预警' : '正常';
+  }
+
+  try {
+    const res = await fetch(`${API}/data`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(result.action === 'updated' ? `✅ ${body.date} 数据已更新` : '✅ 数据保存成功！', 'success');
+      loadRecentData();
+      checkServer();
+    } else {
+      showToast(`❌ ${result.error}`, 'error');
+    }
+  } catch (err) {
+    showToast('❌ 网络错误，请确认服务已启动', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<iconify-icon icon="ri:save-3-line"></iconify-icon> 保存数据`;
+  }
+});
+
+// ── Toast 通知 ────────────────────────────────
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  const icon = document.getElementById('toast-icon');
+  document.getElementById('toast-msg').textContent = msg;
+  toast.className = `toast ${type}`;
+  icon.setAttribute('icon', type === 'success' ? 'ri:checkbox-circle-line' : 'ri:error-warning-line');
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>

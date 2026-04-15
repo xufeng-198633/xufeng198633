@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport"/>
+<title>短视频运营数据分析看板 - 2026</title>
+<script src="https://modao.cc/agent-py/static/source/js/tailwindcss.3.4.3.js"></script>
+<script src="https://modao.cc/agent-py/static/source/js/echarts.min.5.4.3.js"></script>
+<script src="https://modao.cc/agent-py/static/source/js/iconify-icon.min.1.0.7.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  body { font-family: 'Inter', 'PingFang SC', sans-serif; background-color: #020617; color: #f8fafc; }
+  .chart-container { min-height: 280px; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+  .glass-panel { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); }
+  .active-tab { border-bottom: 2px solid #38bdf8; color: #38bdf8; }
+  .kpi-value { transition: all 0.4s ease; }
+  .loading-shimmer {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px; display: inline-block; height: 1em; width: 80%;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* 手机底部导航 */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(15,23,42,0.95); backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+  }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; color: #64748b; font-size: 10px; text-decoration: none;
+    padding: 0.25rem 0.75rem; border-radius: 0.5rem; transition: color 0.2s;
+    flex: 1;
+  }
+  .bottom-nav a.active { color: #38bdf8; }
+  .bottom-nav a iconify-icon { font-size: 1.25rem; }
+
+  /* PC侧边栏 */
+  .sidebar { display: flex; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none !important; }
+    .bottom-nav { display: flex !important; }
+    body { overflow: auto; }
+    .page-body { flex-direction: column !important; height: auto !important; overflow: visible !important; }
+    .main-scroll { overflow: visible !important; height: auto !important; padding-bottom: 5rem; }
+    .page-header { padding: 0.875rem 1rem !important; }
+    .page-header h2 { font-size: 0.95rem !important; }
+    .header-extra { display: none; }
+    .header-input-btn { display: flex !important; }
+    .dashboard-grid { padding: 0.875rem !important; gap: 0.75rem !important; }
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 0.75rem !important; }
+    .kpi-card { padding: 1rem !important; }
+    .kpi-card .kpi-value { font-size: 1.5rem !important; }
+    .chart-full { padding: 1rem !important; }
+    .chart-container { min-height: 220px !important; }
+    .sub-charts { grid-template-columns: 1fr !important; }
+    .sub-chart-card { padding: 1rem !important; }
+    .sub-chart-card .h-64 { height: 180px !important; }
+    .insight-grid { grid-template-columns: 1fr !important; }
+    .chart-legend { display: none; }
+    .dim-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .dim-btns button { font-size: 0.7rem !important; padding: 0.3rem 0.6rem !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page-body flex h-screen overflow-hidden">
+
+<!-- 侧边栏（PC） -->
+<aside class="sidebar w-72 glass-panel h-screen flex-col p-6 space-y-8 z-10 shrink-0">
+  <div>
+    <div class="flex items-center space-x-2 mb-8">
+      <iconify-icon class="text-3xl text-sky-400" icon="ri:video-chart-fill"></iconify-icon>
+      <h1 class="text-xl font-bold tracking-tight">DataPulse <span class="text-sky-400">2026</span></h1>
+    </div>
+
+    <!-- 导航 -->
+    <nav class="space-y-1 mb-6">
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20" href="index.html">
+        <iconify-icon icon="ri:dashboard-3-line"></iconify-icon>
+        <span class="text-sm font-medium">数据看板</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="details.html">
+        <iconify-icon icon="ri:list-unordered"></iconify-icon>
+        <span class="text-sm font-medium">数据明细表</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="input.html">
+        <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+        <span class="text-sm font-medium">数据录入</span>
+      </a>
+    </nav>
+
+    <!-- 日期筛选 -->
+    <div class="mb-6">
+      <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+        <iconify-icon class="mr-2" icon="ri:calendar-line"></iconify-icon> 日期筛选器
+      </h3>
+      <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2" id="date-selector">
+        <p class="text-xs text-slate-600">加载中...</p>
+      </div>
+    </div>
+
+    <!-- 数据维度 -->
+    <div class="mb-6">
+      <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+        <iconify-icon class="mr-2" icon="ri:dashboard-3-line"></iconify-icon> 数据维度
+      </h3>
+      <div class="flex flex-col space-y-2">
+        <button onclick="switchDimension('traffic')" id="btn-traffic" class="text-left text-sm px-4 py-2 rounded bg-sky-500/10 text-sky-400 font-medium border border-sky-500/20">流量指标</button>
+        <button onclick="switchDimension('interact')" id="btn-interact" class="text-left text-sm px-4 py-2 rounded hover:bg-slate-800 text-slate-300 transition">互动指标</button>
+        <button onclick="switchDimension('quality')" id="btn-quality" class="text-left text-sm px-4 py-2 rounded hover:bg-slate-800 text-slate-300 transition">视频质量</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-auto">
+    <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
+      <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">系统状态</p>
+      <div id="sys-status" class="flex items-center space-x-2 text-xs text-yellow-400">
+        <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+        <span>连接中...</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- 主内容区 -->
+<main class="main-scroll flex-1 overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
+  <!-- 顶栏 -->
+  <header class="sticky top-0 z-20 glass-panel px-4 py-3 flex justify-between items-center page-header">
+    <div>
+      <h2 class="text-xl font-bold">短视频运营数据看板</h2>
+      <p class="text-xs text-slate-400 mt-0.5" id="header-period">统计周期: 加载中...</p>
+    </div>
+    <div class="flex items-center space-x-2 sm:space-x-4">
+      <div class="header-extra hidden sm:flex items-center space-x-1 px-3 py-1.5 bg-slate-900 rounded-full border border-slate-800">
+        <span class="text-xs text-slate-400" id="last-update-time">最后更新: --</span>
+      </div>
+      <button onclick="loadAllData()" class="p-2 hover:bg-slate-800 rounded-full transition" title="刷新数据">
+        <iconify-icon class="text-xl" id="refresh-icon" icon="ri:refresh-line"></iconify-icon>
+      </button>
+      <a href="input.html" class="bg-sky-500 hover:bg-sky-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center">
+        <iconify-icon class="mr-1" icon="ri:add-line"></iconify-icon>
+        <span class="hidden sm:inline">录入数据</span>
+        <span class="sm:hidden">录入</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- 手机端维度切换 -->
+  <div class="sm:hidden px-3 pt-3 dim-btns">
+    <button onclick="switchDimension('traffic')" id="mob-btn-traffic" class="px-3 py-1.5 text-xs rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium">流量</button>
+    <button onclick="switchDimension('interact')" id="mob-btn-interact" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300">互动</button>
+    <button onclick="switchDimension('quality')" id="mob-btn-quality" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300">质量</button>
+  </div>
+
+  <div class="p-8 space-y-5 dashboard-grid" id="dashboard-content">
+    <!-- KPI 卡片 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 kpi-grid">
+
+      <!-- 总播放量 -->
+      <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group kpi-card">
+        <div class="absolute -right-4 -top-4 text-sky-500/10 group-hover:text-sky-500/20 transition-all duration-500">
+          <iconify-icon icon="ri:play-circle-fill" width="80"></iconify-icon>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mb-1">总播放量</p>
+        <h3 class="text-2xl sm:text-3xl font-bold kpi-value" id="kpi-total-plays"><span class="loading-shimmer"></span></h3>
+        <div class="flex items-center mt-3 text-xs">
+          <span id="kpi-plays-change" class="flex items-center font-medium px-2 py-1 rounded">--</span>
+          <span class="ml-2 text-slate-500">对比前日</span>
+        </div>
+      </div>
+
+      <!-- 平均完播率 -->
+      <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group kpi-card">
+        <div class="absolute -right-4 -top-4 text-emerald-500/10 group-hover:text-emerald-500/20 transition-all duration-500">
+          <iconify-icon icon="ri:shield-check-fill" width="80"></iconify-icon>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mb-1">平均完播率</p>
+        <h3 class="text-2xl sm:text-3xl font-bold kpi-value" id="kpi-avg-completion"><span class="loading-shimmer"></span></h3>
+        <div class="flex items-center mt-3 text-xs">
+          <span id="kpi-completion-change" class="flex items-center font-medium px-2 py-1 rounded">--</span>
+          <span class="ml-2 text-slate-500">较基准</span>
+        </div>
+      </div>
+
+      <!-- 峰值分享量 -->
+      <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group kpi-card">
+        <div class="absolute -right-4 -top-4 text-sky-400/10 group-hover:text-sky-400/20 transition-all duration-500">
+          <iconify-icon icon="ri:share-forward-fill" width="80"></iconify-icon>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mb-1">最新分享量</p>
+        <h3 class="text-2xl sm:text-3xl font-bold text-sky-400 kpi-value" id="kpi-peak-share"><span class="loading-shimmer"></span></h3>
+        <div class="flex items-center mt-3 text-xs">
+          <span id="kpi-share-date" class="text-sky-400 flex items-center font-medium bg-sky-400/10 px-2 py-1 rounded">--</span>
+        </div>
+      </div>
+
+      <!-- 平均互动率 -->
+      <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group kpi-card">
+        <div class="absolute -right-4 -top-4 text-purple-500/10 group-hover:text-purple-500/20 transition-all duration-500">
+          <iconify-icon icon="ri:heart-3-fill" width="80"></iconify-icon>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 mb-1">平均互动率</p>
+        <h3 class="text-2xl sm:text-3xl font-bold kpi-value" id="kpi-avg-interaction"><span class="loading-shimmer"></span></h3>
+        <div class="flex items-center mt-3 text-xs">
+          <span id="kpi-interaction-change" class="flex items-center font-medium px-2 py-1 rounded">--</span>
+          <span class="ml-2 text-slate-500">较前日</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主图表 -->
+    <div class="glass-panel p-6 rounded-2xl chart-full">
+      <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
+        <div>
+          <h3 class="text-base sm:text-lg font-bold" id="main-chart-title">流量、互动与质量复合多维趋势图</h3>
+          <p class="text-xs text-slate-400">展示每日播放、互动百分比与完播率多维关联</p>
+        </div>
+        <div class="flex flex-wrap gap-2 chart-legend" id="chart-legend">
+          <span class="flex items-center text-xs text-slate-400 px-2 py-1 bg-slate-800 rounded-lg">
+            <span class="w-3 h-3 bg-sky-500 rounded-sm mr-1.5 opacity-70"></span> 播放量
+          </span>
+          <span class="flex items-center text-xs text-slate-400 px-2 py-1 bg-slate-800 rounded-lg">
+            <span class="w-3 h-0.5 bg-yellow-400 mr-1.5"></span> 互动率
+          </span>
+          <span class="flex items-center text-xs text-slate-400 px-2 py-1 bg-slate-800 rounded-lg">
+            <span class="w-3 h-0.5 bg-emerald-400 mr-1.5"></span> 完播率
+          </span>
+        </div>
+      </div>
+      <div class="chart-container w-full" id="main-composite-chart"></div>
+    </div>
+
+    <!-- 辅助图表 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sub-charts">
+      <div class="glass-panel p-5 rounded-2xl sub-chart-card">
+        <h4 class="text-sm font-bold mb-3 flex items-center">
+          <iconify-icon class="mr-2 text-sky-400" icon="ri:folders-line"></iconify-icon> 分享与收藏量
+        </h4>
+        <div class="h-64" id="share-collect-chart"></div>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl sub-chart-card">
+        <h4 class="text-sm font-bold mb-3 flex items-center">
+          <iconify-icon class="mr-2 text-emerald-400" icon="ri:time-line"></iconify-icon> 播放时长与占比
+        </h4>
+        <div class="h-64" id="play-time-chart"></div>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl sub-chart-card">
+        <h4 class="text-sm font-bold mb-3 flex items-center">
+          <iconify-icon class="mr-2 text-purple-400" icon="ri:bar-chart-grouped-line"></iconify-icon> 跳出率 vs 完播率
+        </h4>
+        <div class="h-64" id="bounce-chart"></div>
+      </div>
+    </div>
+
+    <!-- 分析建议 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-8 insight-grid">
+      <div class="bg-gradient-to-br from-sky-900/30 to-slate-900 border border-sky-500/20 p-5 rounded-2xl">
+        <h4 class="font-bold text-sky-400 mb-4 flex items-center">
+          <iconify-icon class="mr-2" icon="ri:lightbulb-flash-line"></iconify-icon> 数据洞察
+        </h4>
+        <div class="space-y-4" id="insights-list">
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center shrink-0">
+              <span class="text-sky-400 font-bold text-xs">...</span>
+            </div>
+            <div><p class="text-xs text-slate-400">数据加载中...</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl">
+        <h4 class="font-bold text-emerald-400 mb-4 flex items-center">
+          <iconify-icon class="mr-2" icon="ri:rocket-line"></iconify-icon> 内容优化建议
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs" id="suggestions-grid">
+          <div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+            <p class="text-slate-400">数据加载中...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+</div><!-- .page-body -->
+
+<!-- 手机底部导航 -->
+<nav class="bottom-nav">
+  <a href="index.html" class="active">
+    <iconify-icon icon="ri:dashboard-3-fill"></iconify-icon>
+    看板
+  </a>
+  <a href="details.html">
+    <iconify-icon icon="ri:list-unordered"></iconify-icon>
+    明细
+  </a>
+  <a href="input.html">
+    <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+    录入
+  </a>
+</nav>
+
+<script>
+const API = 'http://localhost:3388/api';
+let allData = [];
+let currentDimension = 'traffic';
+
+// ── 入口 ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => { loadAllData(); });
+
+async function loadAllData() {
+  const icon = document.getElementById('refresh-icon');
+  icon.classList.add('animate-spin');
+  try {
+    const [dataRes, summaryRes] = await Promise.all([
+      fetch(`${API}/data`).then(r => r.json()),
+      fetch(`${API}/summary`).then(r => r.json())
+    ]);
+    allData = dataRes;
+    updateKPI(summaryRes);
+    buildDateSelector(allData);
+    renderCharts(allData);
+    renderInsights(allData);
+    updateHeaderPeriod(allData);
+    const timeEl = document.getElementById('last-update-time');
+    if (timeEl) timeEl.textContent = '最后更新: ' + new Date().toLocaleString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('sys-status').innerHTML =
+      `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span><span class="text-green-400">数据实时同步中</span>`;
+  } catch(e) {
+    document.getElementById('sys-status').innerHTML =
+      `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-400">服务未连接</span>`;
+    showFallback();
+  } finally {
+    icon.classList.remove('animate-spin');
+  }
+}
+
+// ── 更新 KPI 卡片 ──────────────────────────
+function updateKPI(s) {
+  if (!s || !Object.keys(s).length) return;
+  document.getElementById('kpi-total-plays').textContent = (s.totalPlays || 0).toLocaleString();
+  document.getElementById('kpi-avg-completion').textContent = (s.avgCompletion || 0) + '%';
+  document.getElementById('kpi-peak-share').textContent = (s.peakShare || 0) + ' 次/视频';
+  document.getElementById('kpi-share-date').innerHTML =
+    `<iconify-icon class="mr-1" icon="ri:calendar-line"></iconify-icon> 最高: ${s.peakShareDate || '--'}`;
+  document.getElementById('kpi-avg-interaction').textContent = (s.avgInteraction || 0) + '%';
+  renderChange('kpi-plays-change', s.playsChange);
+  renderChange('kpi-completion-change', s.completionChange);
+  renderChange('kpi-interaction-change', s.interactionChange);
+}
+
+function renderChange(id, val) {
+  const el = document.getElementById(id);
+  if (val === undefined || val === null) return;
+  const isUp = val >= 0;
+  el.className = `flex items-center font-medium px-2 py-1 rounded ${isUp ? 'text-green-400 bg-green-400/10' : 'text-red-400 bg-red-400/10'}`;
+  el.innerHTML = `<iconify-icon class="mr-1" icon="ri:arrow-right-${isUp ? 'up' : 'down'}-line"></iconify-icon> ${isUp ? '+' : ''}${val}%`;
+}
+
+// ── 日期筛选器 ──────────────────────────────
+function buildDateSelector(data) {
+  const container = document.getElementById('date-selector');
+  container.innerHTML = data.slice().reverse().map(d => `
+    <label class="flex items-center p-2 rounded hover:bg-slate-800 transition cursor-pointer group">
+      <input type="checkbox" checked data-date="${d.date}"
+        onchange="applyFilter()"
+        class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500"/>
+      <span class="ml-3 text-sm text-slate-300 group-hover:text-white">${d.date.replace(/-/g,'.')}</span>
+    </label>
+  `).join('');
+}
+
+function applyFilter() {
+  const selected = [...document.querySelectorAll('#date-selector input:checked')].map(el => el.dataset.date);
+  const filtered = allData.filter(d => selected.includes(d.date));
+  renderCharts(filtered);
+}
+
+// ── 维度切换 ────────────────────────────────
+function switchDimension(dim) {
+  currentDimension = dim;
+  ['traffic','interact','quality'].forEach(d => {
+    const btn = document.getElementById(`btn-${d}`);
+    const mBtn = document.getElementById(`mob-btn-${d}`);
+    if (d === dim) {
+      if (btn) btn.className = 'text-left text-sm px-4 py-2 rounded bg-sky-500/10 text-sky-400 font-medium border border-sky-500/20';
+      if (mBtn) mBtn.className = 'px-3 py-1.5 text-xs rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium';
+    } else {
+      if (btn) btn.className = 'text-left text-sm px-4 py-2 rounded hover:bg-slate-800 text-slate-300 transition';
+      if (mBtn) mBtn.className = 'px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300';
+    }
+  });
+  renderMainChart(getFilteredData());
+}
+
+function getFilteredData() {
+  const checkboxes = document.querySelectorAll('#date-selector input:checked');
+  if (!checkboxes.length) return allData;
+  const selected = [...checkboxes].map(el => el.dataset.date);
+  return allData.filter(d => selected.includes(d.date));
+}
+
+// ── 更新顶部时间范围 ─────────────────────────
+function updateHeaderPeriod(data) {
+  if (!data.length) return;
+  const first = data[0].date;
+  const last = data[data.length-1].date;
+  document.getElementById('header-period').textContent =
+    `统计周期: ${first.replace(/-/g,'.')} - ${last.replace(/-/g,'.')}（共 ${data.length} 条）`;
+}
+
+// ── 图表渲染 ────────────────────────────────
+const commonTheme = {
+  backgroundColor: 'transparent',
+  textStyle: { color: '#94a3b8' },
+  title: { textStyle: { color: '#f8fafc' } },
+  legend: { textStyle: { color: '#94a3b8' } }
+};
+
+function renderCharts(data) {
+  renderMainChart(data);
+  renderShareCollect(data);
+  renderPlayTime(data);
+  renderBounceChart(data);
+  window.addEventListener('resize', () => {
+    ['main-composite-chart','share-collect-chart','play-time-chart','bounce-chart'].forEach(id => {
+      const inst = echarts.getInstanceByDom(document.getElementById(id));
+      if (inst) inst.resize();
+    });
+  });
+}
+
+function renderMainChart(data) {
+  const el = document.getElementById('main-composite-chart');
+  let chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  const dates = data.map(d => d.date.slice(5));
+  const isMobile = window.innerWidth < 768;
+
+  let series, legend;
+  if (currentDimension === 'traffic') {
+    series = [
+      { name:'播放量', type:'bar', barWidth:'35%',
+        itemStyle:{ color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#0ea5e9'},{offset:1,color:'#0c4a6e'}]), borderRadius:[4,4,0,0] },
+        data: data.map(d => d.plays) },
+      { name:'互动率', type:'line', yAxisIndex:1, smooth:true, symbol:'circle',
+        lineStyle:{color:'#facc15',width:3}, itemStyle:{color:'#facc15'},
+        data: data.map(d => d.avg_interaction) },
+      { name:'完播率', type:'line', yAxisIndex:2, smooth:true,
+        lineStyle:{color:'#10b981',width:2}, itemStyle:{color:'#10b981'},
+        data: data.map(d => d.completion_rate) },
+      { name:'2s跳出率', type:'line', yAxisIndex:2,
+        lineStyle:{type:'dashed',color:'#f43f5e',width:1}, symbol:'none',
+        data: data.map(d => d.bounce_2s) },
+      { name:'5s完播率', type:'line', yAxisIndex:2,
+        lineStyle:{color:'#34d399',width:1}, symbol:'none',
+        data: data.map(d => d.completion_5s) }
+    ];
+    legend = ['播放量','互动率','完播率','2s跳出率','5s完播率'];
+  } else if (currentDimension === 'interact') {
+    series = [
+      { name:'点赞量', type:'bar', barWidth:'25%',
+        itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#a855f7'},{offset:1,color:'#4c1d95'}]), borderRadius:[4,4,0,0]},
+        data: data.map(d => d.likes) },
+      { name:'分享量', type:'bar', barWidth:'25%',
+        itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#38bdf8'},{offset:1,color:'#0369a1'}]), borderRadius:[4,4,0,0]},
+        data: data.map(d => d.shares) },
+      { name:'收藏量', type:'bar', barWidth:'25%',
+        itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#fb923c'},{offset:1,color:'#9a3412'}]), borderRadius:[4,4,0,0]},
+        data: data.map(d => d.collects) },
+      { name:'互动率(%)', type:'line', yAxisIndex:1, smooth:true, symbol:'circle',
+        lineStyle:{color:'#facc15',width:3}, itemStyle:{color:'#facc15'},
+        data: data.map(d => d.avg_interaction) }
+    ];
+    legend = ['点赞量','分享量','收藏量','互动率(%)'];
+  } else {
+    series = [
+      { name:'完播率(%)', type:'line', smooth:true, yAxisIndex:0,
+        lineStyle:{color:'#10b981',width:3}, itemStyle:{color:'#10b981'}, symbol:'circle',
+        data: data.map(d => d.completion_rate) },
+      { name:'5s完播率(%)', type:'line', smooth:true, yAxisIndex:0,
+        lineStyle:{color:'#34d399',width:2}, itemStyle:{color:'#34d399'},
+        data: data.map(d => d.completion_5s) },
+      { name:'2s跳出率(%)', type:'line', smooth:true, yAxisIndex:0,
+        lineStyle:{type:'dashed',color:'#f43f5e',width:2}, itemStyle:{color:'#f43f5e'},
+        data: data.map(d => d.bounce_2s) },
+      { name:'均播占比(%)', type:'line', smooth:true, yAxisIndex:0,
+        lineStyle:{color:'#fb923c',width:2}, itemStyle:{color:'#fb923c'},
+        data: data.map(d => d.avg_play_ratio) },
+      { name:'均播时长(s)', type:'bar', yAxisIndex:1, barWidth:'20%',
+        itemStyle:{color:'rgba(99,102,241,0.4)', borderRadius:[4,4,0,0]},
+        data: data.map(d => d.avg_play_duration) }
+    ];
+    legend = ['完播率(%)','5s完播率(%)','2s跳出率(%)','均播占比(%)','均播时长(s)'];
+  }
+
+  chart.setOption({
+    ...commonTheme,
+    tooltip: { trigger:'axis', axisPointer:{type:'cross'},
+      backgroundColor:'rgba(15,23,42,0.9)', borderColor:'#334155', textStyle:{color:'#f8fafc',fontSize:11} },
+    grid: { top: isMobile ? '20%' : '15%', left:'3%', right: isMobile ? '5%' : '12%', bottom:'10%', containLabel:true },
+    legend: { data: legend, top:0, textStyle:{fontSize: isMobile ? 10 : 12} },
+    xAxis: { type:'category', data:dates, axisLine:{lineStyle:{color:'#334155'}}, axisLabel:{fontSize: isMobile ? 10 : 12} },
+    yAxis: [
+      { type:'value', name: isMobile ? '' : '播放/数量', position:'left',
+        axisLine:{show:true,lineStyle:{color:'#0ea5e9'}},
+        splitLine:{lineStyle:{color:'#1e293b',type:'dashed'}} },
+      { type:'value', name: isMobile ? '' : '百分比/秒', position:'right',
+        axisLine:{show:true,lineStyle:{color:'#facc15'}},
+        splitLine:{show:false} },
+      { type:'value', name: isMobile ? '' : '完播系列(%)', position:'right', offset: isMobile ? 0 : 60, min:0, max:100,
+        axisLine:{show:!isMobile,lineStyle:{color:'#10b981'}}, splitLine:{show:false}, show: !isMobile }
+    ],
+    series
+  }, true);
+}
+
+function renderShareCollect(data) {
+  const el = document.getElementById('share-collect-chart');
+  let chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  const dates = data.map(d => d.date.slice(5));
+  chart.setOption({
+    ...commonTheme,
+    tooltip: { trigger:'axis', axisPointer:{type:'shadow'} },
+    grid: { top:20, left:10, right:10, bottom:0, containLabel:true },
+    xAxis: { type:'category', data:dates, axisLabel:{fontSize:10} },
+    yAxis: { type:'value', splitLine:{lineStyle:{color:'#1e293b'}} },
+    series: [
+      { name:'分享', type:'bar', stack:'total', itemStyle:{color:'#38bdf8'}, data: data.map(d => d.shares) },
+      { name:'收藏', type:'bar', stack:'total', itemStyle:{color:'#1e3a8a'}, data: data.map(d => d.collects) }
+    ]
+  });
+}
+
+function renderPlayTime(data) {
+  const el = document.getElementById('play-time-chart');
+  let chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  const dates = data.map(d => d.date.slice(5));
+  chart.setOption({
+    ...commonTheme,
+    tooltip: { trigger:'axis' },
+    grid: { top:20, left:10, right:10, bottom:0, containLabel:true },
+    xAxis: { type:'category', data:dates, axisLabel:{fontSize:10} },
+    yAxis: [
+      { type:'value', name:'秒', splitLine:{lineStyle:{color:'#1e293b'}} },
+      { type:'value', name:'%', max:100, splitLine:{show:false} }
+    ],
+    series: [
+      { name:'播放时长(s)', type:'bar', itemStyle:{color:'#10b981', opacity:0.8}, data: data.map(d => d.avg_play_duration) },
+      { name:'时长占比', type:'line', yAxisIndex:1, lineStyle:{color:'#fb923c'}, data: data.map(d => d.avg_play_ratio) }
+    ]
+  });
+}
+
+function renderBounceChart(data) {
+  const el = document.getElementById('bounce-chart');
+  let chart = echarts.getInstanceByDom(el) || echarts.init(el);
+  const dates = data.map(d => d.date.slice(5));
+  chart.setOption({
+    ...commonTheme,
+    tooltip: { trigger:'axis' },
+    grid: { top:20, left:10, right:10, bottom:0, containLabel:true },
+    xAxis: { type:'category', data:dates, axisLabel:{fontSize:10} },
+    yAxis: { type:'value', max:100, splitLine:{lineStyle:{color:'#1e293b'}} },
+    series: [
+      { name:'完播率(%)', type:'line', smooth:true,
+        lineStyle:{color:'#10b981',width:2}, itemStyle:{color:'#10b981'},
+        areaStyle:{color:'rgba(16,185,129,0.1)'}, data: data.map(d => d.completion_rate) },
+      { name:'2s跳出率(%)', type:'line', smooth:true,
+        lineStyle:{color:'#f43f5e',width:2,type:'dashed'}, itemStyle:{color:'#f43f5e'},
+        data: data.map(d => d.bounce_2s) }
+    ]
+  });
+}
+
+// ── 动态洞察 ────────────────────────────────
+function renderInsights(data) {
+  if (!data.length) return;
+  const latest = data[data.length - 1];
+  const prev = data[data.length - 2] || latest;
+  const insights = [];
+
+  const shareDiff = latest.shares - prev.shares;
+  if (shareDiff > 0) {
+    insights.push({ icon: 'ri:share-forward-line', color: 'sky', title: `分享量上升 +${shareDiff}`,
+      desc: `${latest.date} 分享量达 ${latest.shares}，较前日增长 ${shareDiff} 次，传播力提升显著。` });
+  }
+
+  const completionTrend = data.slice(-3).map(d => d.completion_rate);
+  const isCompletionUp = completionTrend.length > 1 && completionTrend[completionTrend.length-1] > completionTrend[0];
+  insights.push({ icon: 'ri:checkbox-circle-line', color: isCompletionUp ? 'emerald' : 'red',
+    title: `完播率${isCompletionUp ? '上升趋势' : '下降趋势'}`,
+    desc: `近期完播率: ${completionTrend.join('% → ')}%，${isCompletionUp ? '内容留存效果持续改善' : '建议优化视频前3秒钩子'}。` });
+
+  if (latest.bounce_2s < 25) {
+    insights.push({ icon: 'ri:eye-line', color: 'sky', title: '2秒跳出率优秀',
+      desc: `当前 2s 跳出率 ${latest.bounce_2s}%，低于 25% 警戒线，视频开头吸引力表现良好。` });
+  } else if (latest.bounce_2s > 40) {
+    insights.push({ icon: 'ri:alert-line', color: 'red', title: '2秒跳出率偏高',
+      desc: `2s 跳出率 ${latest.bounce_2s}%，建议重新设计视频开头画面或文字钩子，降低流失。` });
+  }
+
+  if (latest.avg_interaction > 12) {
+    insights.push({ icon: 'ri:heart-3-line', color: 'purple', title: '互动率表现出色',
+      desc: `平均互动率 ${latest.avg_interaction}%，超过行业均线（10%），用户参与度高。` });
+  }
+
+  document.getElementById('insights-list').innerHTML = insights.slice(0,3).map((ins, i) => `
+    <div class="flex items-start space-x-3">
+      <div class="w-8 h-8 rounded-full bg-${ins.color}-500/20 flex items-center justify-center shrink-0">
+        <span class="text-${ins.color}-400 font-bold text-xs">${i+1}</span>
+      </div>
+      <div>
+        <p class="text-sm font-semibold">${ins.title}</p>
+        <p class="text-xs text-slate-400 mt-1">${ins.desc}</p>
+      </div>
+    </div>
+  `).join('');
+
+  const suggestions = [
+    { color:'emerald', title:'复用高完播结构',
+      desc:`将完播率 ≥ ${Math.max(...data.map(d=>d.completion_rate))}% 的视频结构模板化，推广至其他主题。` },
+    { color:'sky', title:'黄金发布时段', desc:'建议在 19:30 - 21:00 发布，系统激励流量分配最为集中。' },
+    { color:'yellow', title:'精简视频时长', desc:'15-22秒视频完播率最优，避免超过30秒的非强叙事内容。' },
+    { color:'purple', title:'互动钩子加强', desc:'在视频末尾增加话题引导词，评论区前3条做话题置顶，提升互动转化。' }
+  ];
+  document.getElementById('suggestions-grid').innerHTML = suggestions.map(s => `
+    <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 hover:border-${s.color}-500/30 transition">
+      <p class="font-bold text-${s.color}-400 mb-1">${s.title}</p>
+      <p class="text-slate-400 text-xs">${s.desc}</p>
+    </div>
+  `).join('');
+}
+
+function showFallback() {
+  ['kpi-total-plays','kpi-avg-completion','kpi-peak-share','kpi-avg-interaction'].forEach(id => {
+    document.getElementById(id).innerHTML = `<span class="text-slate-600 text-base">服务未启动</span>`;
+  });
+  document.getElementById('header-period').textContent = '⚠ 请先启动 server.js 后刷新页面';
+}
+</script>
+</body>
+</html>

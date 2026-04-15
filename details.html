@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>数据明细 - 短视频运营分析系统</title>
+<script src="https://modao.cc/agent-py/static/source/js/tailwindcss.3.4.3.js"></script>
+<script src="https://modao.cc/agent-py/static/source/js/iconify-icon.min.1.0.7.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; }
+  .glass-panel { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+  th { cursor: pointer; user-select: none; }
+  th:hover { color: #38bdf8; }
+  .sort-active { color: #38bdf8; }
+  tr { transition: background 0.15s; }
+
+  /* PC侧边栏，手机隐藏 */
+  .pc-sidebar { display: flex; }
+  .mobile-bottom-nav { display: none; }
+  .pc-main { margin-left: 18rem; }
+
+  /* 桌面端保持表格 */
+  @media (min-width: 769px) {
+    .table-desktop { display: table; }
+    .mobile-cards { display: none; }
+    .pc-main { margin-left: 18rem; }
+  }
+
+  /* 手机端样式 */
+  @media (max-width: 768px) {
+    .pc-sidebar { display: none; }
+    .mobile-bottom-nav { display: flex; }
+    .pc-main { margin-left: 0; padding-bottom: 70px; }
+    main { padding-left: 1rem !important; padding-right: 1rem !important; }
+    header { padding: 0.75rem !important; flex-direction: column; gap: 0.75rem; align-items: stretch !important; }
+    header h2 { font-size: 1rem; }
+    #search-input { width: 100% !important; }
+    #theme-filter, #status-filter { flex: 1; min-width: 0; }
+    .filter-row { display: flex; gap: 0.5rem; }
+
+    /* 手机端表格转卡片 */
+    .table-desktop { display: none; }
+    .mobile-cards { display: block; }
+  }
+
+  /* 桌面端保持表格 */
+  @media (min-width: 769px) {
+    .table-desktop { display: table; }
+    .mobile-cards { display: none; }
+  }
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- PC侧边栏 -->
+<aside class="pc-sidebar w-72 glass-panel h-screen flex flex-col p-6 space-y-8 z-10 shrink-0 fixed left-0 top-0">
+  <div>
+    <div class="flex items-center space-x-2 mb-8">
+      <iconify-icon class="text-3xl text-sky-400" icon="ri:video-chart-fill"></iconify-icon>
+      <h1 class="text-xl font-bold tracking-tight">DataPulse <span class="text-sky-400">2026</span></h1>
+    </div>
+    <nav class="space-y-1">
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="index.html">
+        <iconify-icon icon="ri:dashboard-3-line"></iconify-icon>
+        <span class="text-sm font-medium">数据看板</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20" href="details.html">
+        <iconify-icon icon="ri:list-unordered"></iconify-icon>
+        <span class="text-sm font-medium">数据明细表</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="input.html">
+        <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+        <span class="text-sm font-medium">数据录入</span>
+      </a>
+    </nav>
+  </div>
+  <!-- 统计摘要 -->
+  <div class="mt-auto space-y-3">
+    <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
+      <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">数据摘要</p>
+      <div class="space-y-1.5 text-xs">
+        <div class="flex justify-between"><span class="text-slate-400">总条目</span><span id="stat-count" class="text-slate-200">--</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">总播放</span><span id="stat-total-plays" class="text-slate-200">--</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">最高单日</span><span id="stat-peak" class="text-sky-400">--</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">均完播率</span><span id="stat-avg-completion" class="text-emerald-400">--</span></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- 手机端底部导航 -->
+<nav class="mobile-bottom-nav fixed bottom-0 left-0 right-0 glass-panel border-t border-slate-800 z-50 h-16">
+  <div class="flex justify-around items-center h-full px-2">
+    <a href="index.html" class="flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500 transition">
+      <iconify-icon class="text-xl" icon="ri:dashboard-3-line"></iconify-icon>
+      <span class="text-[10px]">看板</span>
+    </a>
+    <a href="details.html" class="flex flex-col items-center gap-0.5 px-3 py-1 text-sky-400">
+      <iconify-icon class="text-xl" icon="ri:list-unordered"></iconify-icon>
+      <span class="text-[10px]">明细</span>
+    </a>
+    <a href="input.html" class="flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500 transition">
+      <iconify-icon class="text-xl" icon="ri:add-circle-line"></iconify-icon>
+      <span class="text-[10px]">录入</span>
+    </a>
+  </div>
+</nav>
+
+<!-- 主内容 -->
+<main class="pc-main flex-1 overflow-y-auto custom-scrollbar h-screen">
+  <header class="sticky top-0 z-20 glass-panel px-8 py-4 flex justify-between items-center border-b border-slate-800">
+    <h2 class="text-xl font-bold">全量视频数据明细</h2>
+    <div class="flex space-x-3 items-center">
+      <!-- 搜索 -->
+      <div class="relative">
+        <iconify-icon class="absolute left-3 top-2.5 text-slate-500" icon="ri:search-line"></iconify-icon>
+        <input id="search-input" onkeyup="applySearch()" class="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-sky-500 w-56 outline-none text-white" placeholder="搜索日期或标题..."/>
+      </div>
+      <!-- 主题筛选 -->
+      <select id="theme-filter" onchange="applySearch()" class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 outline-none focus:ring-1 focus:ring-sky-500">
+        <option value="">全部主题</option>
+        <option value="城市烟火">城市烟火</option>
+        <option value="上班通勤">上班通勤</option>
+        <option value="休闲时刻">休闲时刻</option>
+        <option value="停止讨好">停止讨好</option>
+      </select>
+      <!-- 状态筛选 -->
+      <select id="status-filter" onchange="applySearch()" class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 outline-none focus:ring-1 focus:ring-sky-500">
+        <option value="">全部状态</option>
+        <option value="爆款">爆款</option>
+        <option value="正常">正常</option>
+        <option value="低预警">低预警</option>
+      </select>
+      <a href="input.html" class="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1">
+        <iconify-icon icon="ri:add-line"></iconify-icon> 录入
+      </a>
+    </div>
+  </header>
+
+  <div class="p-8">
+    <!-- 桌面端表格 -->
+    <div class="table-desktop glass-panel rounded-2xl overflow-hidden">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-900/50 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th onclick="sortBy('date')" class="px-5 py-4 font-semibold whitespace-nowrap" data-col="date">
+                发布日期 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th class="px-5 py-4 font-semibold">视频标题</th>
+              <th class="px-5 py-4 font-semibold">主题</th>
+              <th onclick="sortBy('plays')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="plays">
+                播放量 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('likes')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="likes">
+                点赞 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('shares')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="shares">
+                分享 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('collects')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="collects">
+                收藏 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('completion_rate')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="completion_rate">
+                完播率 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('bounce_2s')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="bounce_2s">
+                2s跳出 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('avg_interaction')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="avg_interaction">
+                互动率 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th class="px-5 py-4 font-semibold">状态</th>
+              <th class="px-5 py-4 font-semibold">操作</th>
+            </tr>
+          </thead>
+          <tbody id="details-tbody" class="divide-y divide-slate-800">
+            <tr><td colspan="12" class="py-8 text-center text-slate-600">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 手机端卡片列表 -->
+    <div id="mobile-cards" class="mobile-cards space-y-3"></div>
+
+    <!-- 分页 & 统计 -->
+    <div class="mt-6 flex justify-between items-center text-xs text-slate-500 w-full">
+      <p id="pagination-info">加载中...</p>
+      <div class="flex space-x-2 flex-1 justify-end" id="pagination-btns"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:3388/api';
+let allData = [];
+let filteredData = [];
+let sortCol = 'date';
+let sortDir = -1;
+let currentPage = 1;
+const PAGE_SIZE = 10;
+
+document.addEventListener('DOMContentLoaded', loadData);
+
+async function loadData() {
+  try {
+    const data = await fetch(`${API}/data`).then(r => r.json());
+    allData = data;
+    filteredData = [...allData].sort((a, b) => b.date.localeCompare(a.date));
+    renderStats();
+    renderTable();
+    renderMobileCards();
+  } catch(e) {
+    document.getElementById('details-tbody').innerHTML =
+      `<tr><td colspan="12" class="py-8 text-center text-red-400">⚠ 无法加载数据，请确认后端服务已启动（node server.js）</td></tr>`;
+    document.getElementById('mobile-cards').innerHTML =
+      `<div class="p-4 text-center text-red-400">⚠ 无法加载数据，请确认后端服务已启动</div>`;
+  }
+}
+
+function renderStats() {
+  const data = allData;
+  document.getElementById('stat-count').textContent = data.length + ' 条';
+  const totalPlays = data.reduce((s, d) => s + (d.plays || 0), 0);
+  document.getElementById('stat-total-plays').textContent = totalPlays.toLocaleString();
+  const peak = data.reduce((max, d) => d.plays > (max.plays || 0) ? d : max, {});
+  document.getElementById('stat-peak').textContent = peak.plays ? `${peak.date} (${peak.plays.toLocaleString()})` : '--';
+  const avgCompletion = data.length ? (data.reduce((s,d) => s + (d.completion_rate||0), 0) / data.length).toFixed(1) : 0;
+  document.getElementById('stat-avg-completion').textContent = avgCompletion + '%';
+}
+
+function renderTable() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageData = filteredData.slice(start, start + PAGE_SIZE);
+  const tbody = document.getElementById('details-tbody');
+
+  if (!pageData.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="py-8 text-center text-slate-600">暂无数据</td></tr>`;
+    document.getElementById('pagination-info').textContent = '暂无数据';
+    document.getElementById('pagination-btns').innerHTML = '';
+    return;
+  }
+
+  const themeColors = {
+    '城市烟火': 'amber', '上班通勤': 'purple',
+    '休闲时刻': 'emerald', '停止讨好': 'sky', '': 'slate'
+  };
+  const statusConfig = {
+    '爆款': { color: 'green', icon: 'ri:fire-line' },
+    '正常': { color: 'slate', icon: 'ri:checkbox-circle-line' },
+    '低预警': { color: 'red', icon: 'ri:alert-line' }
+  };
+
+  tbody.innerHTML = pageData.map(d => {
+    const theme = d.theme || '';
+    const tc = themeColors[theme] || 'slate';
+    const status = d.status || '正常';
+    const sc = statusConfig[status] || statusConfig['正常'];
+    const bounceColor = d.bounce_2s < 25 ? 'emerald' : d.bounce_2s > 40 ? 'red' : 'slate';
+    const completionColor = d.completion_rate >= 50 ? 'emerald' : d.completion_rate >= 35 ? 'slate' : 'red';
+
+    return `
+    <tr class="hover:bg-sky-500/5 transition">
+      <td class="px-5 py-4 text-slate-400 whitespace-nowrap">${d.date}</td>
+      <td class="px-5 py-4 font-medium max-w-xs truncate" title="${d.title || ''}">${d.title || '<span class="text-slate-600">—</span>'}</td>
+      <td class="px-5 py-4">
+        ${theme ? `<span class="px-2 py-0.5 bg-${tc}-500/20 text-${tc}-400 rounded-full text-[10px]">${theme}</span>` : '<span class="text-slate-600">—</span>'}
+      </td>
+      <td class="px-5 py-4 text-right font-mono">${(d.plays||0).toLocaleString()}</td>
+      <td class="px-5 py-4 text-right font-mono text-purple-400">${(d.likes||0).toLocaleString()}</td>
+      <td class="px-5 py-4 text-right font-mono text-sky-400 font-bold">${d.shares||0}</td>
+      <td class="px-5 py-4 text-right font-mono text-orange-400">${d.collects||0}</td>
+      <td class="px-5 py-4 text-right font-mono text-${completionColor}-400">${d.completion_rate||0}%</td>
+      <td class="px-5 py-4 text-right font-mono text-${bounceColor}-400">${d.bounce_2s||0}%</td>
+      <td class="px-5 py-4 text-right font-mono text-yellow-400">${d.avg_interaction||0}%</td>
+      <td class="px-5 py-4">
+        <span class="flex items-center text-xs text-${sc.color}-400">
+          <iconify-icon class="mr-1" icon="${sc.icon}"></iconify-icon> ${status}
+        </span>
+      </td>
+      <td class="px-5 py-4 whitespace-nowrap">
+        <a href="input.html" onclick="sessionStorage.setItem('editId','${d._id}')"
+           class="text-slate-500 hover:text-sky-400 transition mr-2" title="编辑">
+          <iconify-icon icon="ri:edit-line"></iconify-icon>
+        </a>
+        <button onclick="deleteRow('${d._id}', '${d.date}')"
+          class="text-slate-500 hover:text-red-400 transition" title="删除">
+          <iconify-icon icon="ri:delete-bin-line"></iconify-icon>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  renderPagination();
+}
+
+function renderMobileCards() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageData = filteredData.slice(start, start + PAGE_SIZE);
+  const container = document.getElementById('mobile-cards');
+
+  if (!pageData.length) {
+    container.innerHTML = `<div class="p-4 text-center text-slate-600">暂无数据</div>`;
+    return;
+  }
+
+  const themeColors = {
+    '城市烟火': 'amber', '上班通勤': 'purple',
+    '休闲时刻': 'emerald', '停止讨好': 'sky', '': 'slate'
+  };
+  const statusConfig = {
+    '爆款': { color: 'green', icon: 'ri:fire-line' },
+    '正常': { color: 'slate', icon: 'ri:checkbox-circle-line' },
+    '低预警': { color: 'red', icon: 'ri:alert-line' }
+  };
+
+  container.innerHTML = pageData.map(d => {
+    const theme = d.theme || '';
+    const tc = themeColors[theme] || 'slate';
+    const status = d.status || '正常';
+    const sc = statusConfig[status] || statusConfig['正常'];
+    const bounceColor = d.bounce_2s < 25 ? 'emerald' : d.bounce_2s > 40 ? 'red' : 'slate';
+    const completionColor = d.completion_rate >= 50 ? 'emerald' : d.completion_rate >= 35 ? 'slate' : 'red';
+
+    return `
+    <div class="glass-panel rounded-xl p-4">
+      <div class="flex justify-between items-start mb-3">
+        <div class="flex-1 min-w-0">
+          <div class="text-xs text-slate-500 mb-1">${d.date}</div>
+          <div class="font-medium text-sm truncate pr-2">${d.title || '—'}</div>
+          ${theme ? `<span class="inline-block mt-1 px-2 py-0.5 bg-${tc}-500/20 text-${tc}-400 rounded-full text-[10px]">${theme}</span>` : ''}
+        </div>
+        <span class="flex items-center text-xs text-${sc.color}-400 whitespace-nowrap ml-2">
+          <iconify-icon class="mr-1" icon="${sc.icon}"></iconify-icon> ${status}
+        </span>
+      </div>
+      <div class="grid grid-cols-4 gap-2 text-xs mb-3">
+        <div class="bg-slate-900/60 rounded p-2 text-center">
+          <div class="text-slate-500 text-[10px] mb-0.5">播放</div>
+          <div class="font-mono text-slate-200">${(d.plays||0).toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-900/60 rounded p-2 text-center">
+          <div class="text-slate-500 text-[10px] mb-0.5">点赞</div>
+          <div class="font-mono text-purple-400">${(d.likes||0).toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-900/60 rounded p-2 text-center">
+          <div class="text-slate-500 text-[10px] mb-0.5">分享</div>
+          <div class="font-mono text-sky-400">${d.shares||0}</div>
+        </div>
+        <div class="bg-slate-900/60 rounded p-2 text-center">
+          <div class="text-slate-500 text-[10px] mb-0.5">收藏</div>
+          <div class="font-mono text-orange-400">${d.collects||0}</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2 text-xs mb-3">
+        <div class="flex items-center justify-between bg-slate-900/60 rounded p-2">
+          <span class="text-slate-500">完播率</span>
+          <span class="font-mono text-${completionColor}-400">${d.completion_rate||0}%</span>
+        </div>
+        <div class="flex items-center justify-between bg-slate-900/60 rounded p-2">
+          <span class="text-slate-500">2s跳出</span>
+          <span class="font-mono text-${bounceColor}-400">${d.bounce_2s||0}%</span>
+        </div>
+        <div class="flex items-center justify-between bg-slate-900/60 rounded p-2">
+          <span class="text-slate-500">互动率</span>
+          <span class="font-mono text-yellow-400">${d.avg_interaction||0}%</span>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-3 pt-2 border-t border-slate-800">
+        <a href="input.html" onclick="sessionStorage.setItem('editId','${d._id}')"
+           class="flex items-center text-xs text-slate-500 hover:text-sky-400 transition">
+          <iconify-icon class="mr-1" icon="ri:edit-line"></iconify-icon> 编辑
+        </a>
+        <button onclick="deleteRow('${d._id}', '${d.date}')"
+          class="flex items-center text-xs text-slate-500 hover:text-red-400 transition">
+          <iconify-icon class="mr-1" icon="ri:delete-bin-line"></iconify-icon> 删除
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = filteredData.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  document.getElementById('pagination-info').textContent =
+    `显示 ${start + 1} 到 ${Math.min(start + PAGE_SIZE, total)} 条，共 ${total} 条`;
+
+  const paginationEl = document.getElementById('pagination-btns');
+  let btns = '';
+  if (currentPage > 1) btns += `<button onclick="goPage(${currentPage-1})" class="px-3 py-1 bg-slate-900 border border-slate-800 rounded hover:border-sky-500/50 transition">上一页</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === currentPage) {
+      btns += `<button class="px-3 py-1 bg-sky-500 text-white rounded">${i}</button>`;
+    } else if (Math.abs(i - currentPage) <= 2) {
+      btns += `<button onclick="goPage(${i})" class="px-3 py-1 bg-slate-900 border border-slate-800 rounded hover:border-sky-500/50 transition">${i}</button>`;
+    }
+  }
+  if (currentPage < totalPages) btns += `<button onclick="goPage(${currentPage+1})" class="px-3 py-1 bg-slate-900 border border-slate-800 rounded hover:border-sky-500/50 transition">下一页</button>`;
+  paginationEl.innerHTML = btns;
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+  renderMobileCards();
+}
+
+function applySearch() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const theme = document.getElementById('theme-filter').value;
+  const status = document.getElementById('status-filter').value;
+  filteredData = allData.filter(d => {
+    const matchSearch = !q || d.date.includes(q) || (d.title||'').toLowerCase().includes(q);
+    const matchTheme = !theme || d.theme === theme;
+    const matchStatus = !status || d.status === status;
+    return matchSearch && matchTheme && matchStatus;
+  });
+  sortData();
+  currentPage = 1;
+  renderTable();
+  renderMobileCards();
+}
+
+function sortBy(col) {
+  if (sortCol === col) { sortDir *= -1; }
+  else { sortCol = col; sortDir = -1; }
+  document.querySelectorAll('th[data-col]').forEach(th => th.classList.remove('sort-active'));
+  const activeEl = document.querySelector(`th[data-col="${col}"]`);
+  if (activeEl) activeEl.classList.add('sort-active');
+  sortData();
+  renderTable();
+  renderMobileCards();
+}
+
+function sortData() {
+  filteredData.sort((a, b) => {
+    const av = a[sortCol], bv = b[sortCol];
+    if (typeof av === 'string') return av.localeCompare(bv) * sortDir;
+    return ((av || 0) - (bv || 0)) * sortDir;
+  });
+}
+
+async function deleteRow(id, date) {
+  if (!confirm(`确认删除 ${date} 的数据记录？`)) return;
+  try {
+    const res = await fetch(`${API}/data/${id}`, { method: 'DELETE' }).then(r => r.json());
+    if (res.success) {
+      allData = allData.filter(d => d._id !== id);
+      applySearch();
+      renderStats();
+    }
+  } catch(e) {
+    alert('删除失败，请确认服务已启动');
+  }
+}
+</script>
+</body>
+</html>
