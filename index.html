@@ -85,7 +85,7 @@
 
     <!-- 导航 -->
     <nav class="space-y-1 mb-6">
-      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20" href="index.html">
+      <a id="nav-dashboard" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20" href="javascript:showPanel('dashboard')">
         <iconify-icon icon="ri:dashboard-3-line"></iconify-icon>
         <span class="text-sm font-medium">数据看板</span>
       </a>
@@ -96,6 +96,10 @@
       <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="input.html">
         <iconify-icon icon="ri:add-circle-line"></iconify-icon>
         <span class="text-sm font-medium">数据录入</span>
+      </a>
+      <a id="nav-ai" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="javascript:showPanel('ai')">
+        <iconify-icon icon="ri:robot-2-line"></iconify-icon>
+        <span class="text-sm font-medium">AI 助手</span>
       </a>
     </nav>
 
@@ -301,13 +305,95 @@
       </div>
     </div>
   </div>
+
+  <!-- AI助手面板 -->
+  <div id="ai-panel" class="p-4 sm:p-8 space-y-5 hidden">
+    <div class="glass-panel p-6 rounded-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">AI 助手</h2>
+      </div>
+      <!-- Tab buttons -->
+      <div class="border-b border-slate-700 mb-4">
+        <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+          <button id="ai-tab-chat" onclick="switchAiTab('chat')" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-sky-400 border-sky-500">
+            AI 对话助手
+          </button>
+          <button id="ai-tab-copywriting" onclick="switchAiTab('copywriting')" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-slate-400 hover:text-white border-transparent">
+            爆款文案生成
+          </button>
+          <button id="ai-tab-analysis" onclick="switchAiTab('analysis')" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-slate-400 hover:text-white border-transparent">
+            数据智能分析
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab content -->
+      <div>
+        <div id="ai-content-chat">
+          <div class="flex flex-col h-[60vh]">
+            <div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              <!-- Chat messages will appear here -->
+              <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                  <iconify-icon icon="ri:robot-2-line" class="text-sky-400"></iconify-icon>
+                </div>
+                <div class="p-3 bg-slate-800 rounded-lg rounded-tl-none">
+                  <p class="text-sm text-slate-300">你好！我是您的AI助手，可以帮助您分析数据、生成文案。有什么可以帮您的吗？</p>
+                </div>
+              </div>
+            </div>
+            <div class="p-4 border-t border-slate-700">
+              <div class="relative">
+                <input type="text" id="chat-input" class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-4 pr-20 py-3 text-sm focus:ring-sky-500 focus:border-sky-500" placeholder="输入您的问题...">
+                <button onclick="sendChatMessage()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center">
+                  发送 <iconify-icon icon="ri:send-plane-fill" class="ml-1"></iconify-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="ai-content-copywriting" class="hidden">
+          <div class="space-y-4">
+            <div>
+              <label for="copywriting-theme" class="block text-sm font-medium text-slate-300 mb-2">选择一个文案主题</label>
+              <select id="copywriting-theme" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm focus:ring-sky-500 focus:border-sky-500">
+                <!-- Options will be populated by JS -->
+              </select>
+            </div>
+            <button onclick="generateCopywriting()" class="w-full bg-sky-500 hover:bg-sky-600 text-white px-4 py-3 rounded-lg text-sm font-medium transition flex items-center justify-center">
+              <iconify-icon icon="ri:quill-pen-line" class="mr-2"></iconify-icon>
+              生成爆款文案
+            </button>
+            <div class="pt-4">
+              <h4 class="text-base font-semibold mb-2">AI 生成结果:</h4>
+              <div id="copywriting-result" class="p-4 bg-slate-900 rounded-lg border border-slate-800 min-h-[200px] text-sm text-slate-300 whitespace-pre-wrap">请先选择主题，然后点击生成...</div>
+            </div>
+          </div>
+        </div>
+        <div id="ai-content-analysis" class="hidden">
+          <div class="space-y-4">
+            <p class="text-sm text-slate-400">点击下方按钮，AI将化身数据分析师，对当前看板上的核心指标进行全面分析，并生成一份专业的洞察报告。</p>
+            <button onclick="generateDataAnalysis()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-lg text-sm font-medium transition flex items-center justify-center">
+              <iconify-icon icon="ri:line-chart-line" class="mr-2"></iconify-icon>
+              开始智能分析
+            </button>
+            <div class="pt-4">
+              <h4 class="text-base font-semibold mb-2">AI 数据分析报告:</h4>
+              <div id="analysis-result" class="p-4 bg-slate-900 rounded-lg border border-slate-800 min-h-[300px] text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">请点击按钮开始分析...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 </div><!-- .page-body -->
 
 <!-- 手机底部导航 -->
 <nav class="bottom-nav">
-  <a href="index.html" class="active">
+  <a href="javascript:showPanel('dashboard')" id="mob-nav-dashboard" class="active">
     <iconify-icon icon="ri:dashboard-3-fill"></iconify-icon>
     看板
   </a>
@@ -319,10 +405,59 @@
     <iconify-icon icon="ri:add-circle-line"></iconify-icon>
     录入
   </a>
+  <a href="javascript:showPanel('ai')" id="mob-nav-ai">
+    <iconify-icon icon="ri:robot-2-line"></iconify-icon>
+    AI助手
+  </a>
 </nav>
 
 <script>
+function showPanel(panelName) {
+  const dashboardPanel = document.getElementById('dashboard-content');
+  const aiPanel = document.getElementById('ai-panel');
+  const navDashboard = document.getElementById('nav-dashboard');
+  const navAi = document.getElementById('nav-ai');
+  const mobNavDashboard = document.getElementById('mob-nav-dashboard');
+  const mobNavAi = document.getElementById('mob-nav-ai');
+
+  const activeClass = 'flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20';
+  const inactiveClass = 'flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition';
+
+  if (panelName === 'ai') {
+    dashboardPanel.classList.add('hidden');
+    aiPanel.classList.remove('hidden');
+    if (navDashboard) navDashboard.className = inactiveClass;
+    if (navAi) navAi.className = activeClass;
+    if (mobNavDashboard) mobNavDashboard.classList.remove('active');
+    if (mobNavAi) mobNavAi.classList.add('active');
+  } else { // dashboard
+    aiPanel.classList.add('hidden');
+    dashboardPanel.classList.remove('hidden');
+    if (navAi) navAi.className = inactiveClass;
+    if (navDashboard) navDashboard.className = activeClass;
+    if (mobNavAi) mobNavAi.classList.remove('active');
+    if (mobNavDashboard) mobNavDashboard.classList.add('active');
+  }
+}
+
+function switchAiTab(tabName) {
+    ['chat', 'copywriting', 'analysis'].forEach(tab => {
+        const contentEl = document.getElementById(`ai-content-${tab}`);
+        const tabEl = document.getElementById(`ai-tab-${tab}`);
+        if (contentEl) contentEl.classList.add('hidden');
+        if (tabEl) tabEl.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-slate-400 hover:text-white border-transparent';
+    });
+
+    const contentToShow = document.getElementById(`ai-content-${tabName}`);
+    const tabToActivate = document.getElementById(`ai-tab-${tabName}`);
+    if (contentToShow) contentToShow.classList.remove('hidden');
+    if (tabToActivate) tabToActivate.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-sky-400 border-sky-500';
+}
+
 const API = 'http://localhost:3388/api';
+const DEEPSEEK_API_KEY = 'sk-0e4d0a22f0d2478a8ecdfed174be195c'; // ！！！警告：API密钥暴露在前端，请勿直接部署到线上！！！
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+
 let allData = [];
 let currentDimension = 'traffic';
 
@@ -353,7 +488,208 @@ function updateDailyQuote() {
 document.addEventListener('DOMContentLoaded', () => { 
   loadAllData(); 
   updateDailyQuote();
+  populateCopywritingThemes();
+  document.getElementById('chat-input').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      sendChatMessage();
+    }
+  });
 });
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+
+  addMessageToHistory('user', message);
+  input.value = '';
+
+  addMessageToHistory('bot', '正在输入中...');
+
+  try {
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { content: '你是一个数据分析和文案生成的助手。', role: 'system' },
+          { content: message, role: 'user' }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = data.choices[0].message.content;
+
+    // 更新 "正在输入中..." 的消息
+    const thinkingMessage = document.querySelector('#chat-history .bot-message-thinking');
+    if(thinkingMessage) {
+        thinkingMessage.querySelector('p').textContent = reply;
+        thinkingMessage.classList.remove('bot-message-thinking');
+    }
+
+  } catch (error) {
+    console.error('Error calling DeepSeek API:', error);
+    const thinkingMessage = document.querySelector('#chat-history .bot-message-thinking');
+    if(thinkingMessage) {
+        thinkingMessage.querySelector('p').textContent = '抱歉，调用AI服务时出错，请检查API Key或网络连接。';
+        thinkingMessage.classList.remove('bot-message-thinking');
+    }
+  }
+}
+
+function addMessageToHistory(sender, message) {
+  const history = document.getElementById('chat-history');
+  const messageDiv = document.createElement('div');
+  
+  if (sender === 'user') {
+    messageDiv.className = 'flex items-start space-x-3 justify-end';
+    messageDiv.innerHTML = `
+      <div class="p-3 bg-sky-500 text-white rounded-lg rounded-br-none">
+        <p class="text-sm">${message}</p>
+      </div>
+      <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+        <iconify-icon icon="ri:user-line"></iconify-icon>
+      </div>
+    `;
+  } else { // bot
+    messageDiv.className = 'flex items-start space-x-3';
+    messageDiv.innerHTML = `
+      <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+        <iconify-icon icon="ri:robot-2-line" class="text-sky-400"></iconify-icon>
+      </div>
+      <div class="p-3 bg-slate-800 rounded-lg rounded-tl-none">
+        <p class="text-sm text-slate-300">${message}</p>
+      </div>
+    `;
+    if (message === '正在输入中...') {
+        messageDiv.classList.add('bot-message-thinking');
+    }
+  }
+  
+  history.appendChild(messageDiv);
+  history.scrollTop = history.scrollHeight;
+}
+
+// ── AI 文案生成 ────────────────────────────────
+function populateCopywritingThemes() {
+  const themes = [...new Set(QUOTES.map(q => q.theme))];
+  const select = document.getElementById('copywriting-theme');
+  select.innerHTML = themes.map(theme => `<option value="${theme}">${theme}</option>`).join('');
+}
+
+async function generateCopywriting() {
+  const theme = document.getElementById('copywriting-theme').value;
+  const resultDiv = document.getElementById('copywriting-result');
+  
+  resultDiv.textContent = 'AI正在生成中，请稍候...';
+
+  const prompt = `你是一个短视频爆款文案生成器。请围绕主题“${theme}”，创作3条全新的、有吸引力的、适合用在短视频中的文案。请严格按照以下要求：\n1. 每条文案都要简短、有力、易于理解。\n2. 风格要符合现代社交媒体的传播规律，能引发用户共鸣或好奇心。\n3. 返回一个JSON格式的数组，其中包含三个字符串，每个字符串就是一条文案。例如：["文案一", "文案二", "文案三"]`;
+
+  try {
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { content: prompt, role: 'user' }
+        ],
+        temperature: 0.8, // 增加一点创造性
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = JSON.parse(data.choices[0].message.content);
+    
+    // 假设返回的是一个数组
+    if (Array.isArray(reply)) {
+      resultDiv.innerHTML = reply.map((text, index) => `<p class="mb-2">${index + 1}. ${text}</p>`).join('');
+    } else if (reply.data && Array.isArray(reply.data)) {
+      // 兼容可能的 { "data": ["文案一", ...] } 格式
+      resultDiv.innerHTML = reply.data.map((text, index) => `<p class="mb-2">${index + 1}. ${text}</p>`).join('');
+    } else {
+        // 如果返回的不是预期的JSON数组，则直接显示原始回复
+        resultDiv.textContent = data.choices[0].message.content;
+    }
+
+  } catch (error) {
+    console.error('Error calling DeepSeek API for copywriting:', error);
+    resultDiv.textContent = '抱歉，生成文案时出错。请检查API Key或网络连接。\n错误详情: ' + error.message;
+  }
+}
+
+// ── AI 数据分析 ────────────────────────────────
+async function generateDataAnalysis() {
+  const resultDiv = document.getElementById('analysis-result');
+  if (!allData || allData.length === 0) {
+    resultDiv.textContent = '数据尚未加载，请先确保看板首页有数据。';
+    return;
+  }
+
+  resultDiv.textContent = 'AI正在分析数据，请稍候... 这可能需要一点时间。'
+
+  // 提取最近最多7天的数据用于分析
+  const recentData = allData.slice(-7);
+  const summary = {
+    period: `${recentData[0].date} to ${recentData[recentData.length - 1].date}`,
+    totalDays: recentData.length,
+    kpi: recentData.map(d => ({
+      date: d.date,
+      plays: d.plays,
+      completion_rate: d.completion_rate,
+      avg_interaction: d.avg_interaction,
+      shares: d.shares
+    }))
+  };
+
+  const prompt = `你是一位资深的短视频数据分析师。这里有一份最近 ${summary.totalDays} 天的运营数据报告（JSON格式）。请你对这份数据进行深入分析，并生成一份专业的分析报告。\n\n数据如下：\n${JSON.stringify(summary, null, 2)}\n\n请在你的报告中包含以下几点：\n1.  **总体评价**：对近期的整体表现给出一个概括性的评价（例如：增长趋势、波动较大、表现平稳等）。\n2.  **核心指标分析**：\n    *   **播放量(plays)**：分析播放量的趋势和波动，并找出可能的原因。\n    *   **完播率(completion_rate)**：评估内容质量和观众粘性，分析完播率的变化。\n    *   **互动率(avg_interaction)**：分析用户参与度，特别是分享量(shares)的变化，评估内容的传播潜力。\n3.  **发现与洞察**：找出数据中隐藏的关键信息或异常点。例如，哪一天的数据特别突出（无论好坏），并尝试解释原因。\n4.  **优化建议**：基于你的分析，提供2-3条具体、可执行的优化建议，以提升未来的数据表现。\n\n请用清晰、专业的语言撰写报告，可以直接输出文本，使用换行符来组织段落。`;
+
+  try {
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { content: prompt, role: 'user' }
+        ],
+        temperature: 0.5, // 分析任务需要更严谨
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = data.choices[0].message.content;
+    resultDiv.textContent = reply;
+
+  } catch (error) {
+    console.error('Error calling DeepSeek API for analysis:', error);
+    resultDiv.textContent = '抱歉，生成分析报告时出错。请检查API Key或网络连接。\n错误详情: ' + error.message;
+  }
+}
 
 async function loadAllData() {
   const icon = document.getElementById('refresh-icon');

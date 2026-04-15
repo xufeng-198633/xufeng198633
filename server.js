@@ -2,10 +2,12 @@
  * 短视频数据看板 - 后端服务
  * Node.js + Express + NeDB (纯JS，无需编译)
  */
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const Datastore = require('@seald-io/nedb');
+const ai = require('./ai');
 
 const app = express();
 const PORT = 3388;
@@ -197,6 +199,20 @@ app.delete('/api/data/:id', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true, removed: n });
   });
+});
+
+// POST /api/ai - 调用AI模块
+app.post('/api/ai', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+    const response = await ai.getCompletion(prompt);
+    res.json({ response });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ─────────────────────────────────────────────
