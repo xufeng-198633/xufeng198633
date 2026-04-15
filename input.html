@@ -345,10 +345,30 @@
 const API = 'http://localhost:3388/api';
 
 // ── 初始化 ──────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('date').value = new Date().toISOString().slice(0, 10);
   checkServer();
   loadRecentData();
+  
+  // 检查是否从 details.html 跳转过来并带有编辑任务
+  const editId = sessionStorage.getItem('editId');
+  if (editId) {
+    try {
+      const data = await fetch(`${API}/data`).then(r => r.json());
+      const editData = data.find(d => d._id === editId);
+      if (editData) {
+        // 使用 setTimeout 确保表单 DOM 完全渲染好再填充
+        setTimeout(() => {
+          fillForm(editData);
+          showToast(`正在编辑: ${editData.date}`, 'success');
+        }, 100);
+      }
+    } catch(e) {
+      console.error('获取待编辑数据失败:', e);
+    }
+    // 读取后清除，避免刷新页面再次触发
+    sessionStorage.removeItem('editId');
+  }
 });
 
 // ── 自动计算平均互动率 ────────────────────────
