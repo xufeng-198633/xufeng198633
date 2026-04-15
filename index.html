@@ -7,6 +7,8 @@
 <script src="https://modao.cc/agent-py/static/source/js/tailwindcss.3.4.3.js"></script>
 <script src="https://modao.cc/agent-py/static/source/js/echarts.min.5.4.3.js"></script>
 <script src="https://modao.cc/agent-py/static/source/js/iconify-icon.min.1.0.7.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.11.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="mock-api.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -25,6 +27,42 @@
     border-radius: 4px; display: inline-block; height: 1em; width: 80%;
   }
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* Markdown 样式增强 */
+  .markdown-body { color: #cbd5e1; line-height: 1.7; font-size: 0.925rem; }
+  .markdown-body h3 { 
+    font-size: 1.25rem; font-weight: 700; color: #38bdf8; 
+    margin-top: 2rem; margin-bottom: 1rem; 
+    padding-bottom: 0.5rem; border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    display: flex; align-items: center; gap: 0.625rem; 
+  }
+  .markdown-body h3::before {
+    content: ""; display: inline-block; width: 4px; height: 1.25rem; 
+    background: #38bdf8; border-radius: 2px;
+  }
+  .markdown-body p { margin-bottom: 1rem; }
+  .markdown-body ul { list-style-type: none; padding-left: 0; margin-bottom: 1.25rem; }
+  .markdown-body li { 
+    position: relative; padding-left: 1.5rem; margin-bottom: 0.75rem; 
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .markdown-body li::before {
+    content: "•"; position: absolute; left: 0.5rem; color: #38bdf8; font-weight: bold;
+  }
+  .markdown-body strong { color: #f1f5f9; font-weight: 600; background: rgba(56, 189, 248, 0.1); padding: 0 4px; border-radius: 4px; }
+  .markdown-body blockquote { 
+    border-left: 4px solid #334155; padding: 0.75rem 1rem; 
+    background: rgba(30, 41, 59, 0.3); border-radius: 0 8px 8px 0; margin: 1.5rem 0;
+  }
+  .markdown-body code { 
+    font-family: 'Fira Code', monospace; background: #0f172a; 
+    padding: 0.2rem 0.4rem; border-radius: 4px; color: #ec4899; font-size: 0.85em;
+  }
+  .markdown-body hr { border: 0; border-top: 1px dashed #334155; margin: 2rem 0; }
+  .markdown-body .action-item {
+    background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 1rem; border-radius: 12px; margin-top: 1rem;
+  }
 
   /* 手机底部导航 */
   .bottom-nav {
@@ -101,6 +139,10 @@
         <iconify-icon icon="ri:robot-2-line"></iconify-icon>
         <span class="text-sm font-medium">AI 助手</span>
       </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="copywriting-list.html">
+        <iconify-icon icon="ri:file-list-2-line"></iconify-icon>
+        <span class="text-sm font-medium">文案列表</span>
+      </a>
     </nav>
 
     <!-- 日期筛选 -->
@@ -125,6 +167,25 @@
       </div>
     </div>
 
+    <!-- 数据管理 (备份与恢复) -->
+    <div class="mb-6">
+      <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+        <iconify-icon class="mr-2 text-amber-400" icon="ri:database-2-line"></iconify-icon> 多端同步管理
+      </h3>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="exportData()" class="flex items-center justify-center space-x-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] rounded border border-slate-700 transition" title="导出备份到本地">
+          <iconify-icon icon="ri:download-cloud-2-line"></iconify-icon>
+          <span>备份导出</span>
+        </button>
+        <button onclick="document.getElementById('import-file').click()" class="flex items-center justify-center space-x-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] rounded border border-slate-700 transition" title="从备份文件恢复数据">
+          <iconify-icon icon="ri:upload-cloud-2-line"></iconify-icon>
+          <span>数据恢复</span>
+        </button>
+        <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
+      </div>
+      <p class="text-[9px] text-slate-500 mt-2 px-1">💡 跨设备使用？建议将整个文件夹放入 <span class="text-sky-400/80">OneDrive/百度云</span> 同步。</p>
+    </div>
+
     <!-- 每日电台寄语 -->
     <div class="">
       <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
@@ -133,16 +194,6 @@
       <div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
         <p id="daily-quote" class="text-xs text-slate-300 italic leading-relaxed">加载中...</p>
         <p id="daily-theme" class="text-[10px] text-sky-400 mt-2 text-right">--</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="">
-    <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
-      <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">系统状态</p>
-      <div id="sys-status" class="flex items-center space-x-2 text-xs text-yellow-400">
-        <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
-        <span>连接中...</span>
       </div>
     </div>
   </div>
@@ -313,7 +364,7 @@
         <h2 class="text-xl font-bold">AI 助手</h2>
       </div>
       <!-- Tab buttons -->
-      <div class="border-b border-slate-700 mb-4">
+      <div class="border-b border-slate-700 mb-4 flex items-center justify-between">
         <nav class="-mb-px flex space-x-6" aria-label="Tabs">
           <button id="ai-tab-chat" onclick="switchAiTab('chat')" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-sky-400 border-sky-500">
             AI 对话助手
@@ -325,6 +376,18 @@
             数据智能分析
           </button>
         </nav>
+        
+        <!-- AI 操作按钮区域 -->
+        <div class="flex items-center space-x-2">
+          <button id="btn-generate-copywriting" onclick="generateCopywriting()" class="hidden bg-sky-500 hover:bg-sky-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition flex items-center">
+            <iconify-icon icon="ri:quill-pen-line" class="mr-1.5"></iconify-icon>
+            生成爆款文案
+          </button>
+          <button id="btn-generate-analysis" onclick="generateDataAnalysis()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition flex items-center">
+            <iconify-icon icon="ri:line-chart-line" class="mr-1.5"></iconify-icon>
+            开始智能分析
+          </button>
+        </div>
       </div>
 
       <!-- Tab content -->
@@ -355,31 +418,49 @@
         <div id="ai-content-copywriting" class="hidden">
           <div class="space-y-4">
             <div>
-              <label for="copywriting-theme" class="block text-sm font-medium text-slate-300 mb-2">选择一个文案主题</label>
+              <label for="copywriting-theme" class="block text-sm font-medium text-slate-300 mb-2">1. 选择一个预设主题 (可选)</label>
               <select id="copywriting-theme" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm focus:ring-sky-500 focus:border-sky-500">
                 <!-- Options will be populated by JS -->
               </select>
             </div>
-            <button onclick="generateCopywriting()" class="w-full bg-sky-500 hover:bg-sky-600 text-white px-4 py-3 rounded-lg text-sm font-medium transition flex items-center justify-center">
-              <iconify-icon icon="ri:quill-pen-line" class="mr-2"></iconify-icon>
-              生成爆款文案
-            </button>
+            <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="copywriting-prompt" class="block text-sm font-medium text-slate-300">2. 输入您的具体要求 (可选)</label>
+              <button onclick="useLastPrompt()" class="text-xs text-sky-400 hover:text-sky-300 transition">使用上次的描述</button>
+            </div>
+              <textarea id="copywriting-prompt" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm focus:ring-sky-500 focus:border-sky-500" placeholder="例如：写一个关于夏天夜晚的文案，风格要治愈..."></textarea>
+            </div>
+            <div>
+                <label for="copywriting-file" class="block text-sm font-medium text-slate-300 mb-2">3. 上传参考文件 (可选, 支持 .txt, .md, .docx)</label>
+                <div class="flex items-center space-x-2">
+                    <input type="file" id="copywriting-file" class="hidden" accept=".txt,.md,.docx" multiple onchange="updateFileName()">
+                    <label for="copywriting-file" class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        <iconify-icon icon="ri:upload-2-line" class="mr-2"></iconify-icon>选择文件
+                    </label>
+                </div>
+                <div id="file-list" class="mt-2 text-sm text-slate-400"></div>
+            </div>
+            
             <div class="pt-4">
               <h4 class="text-base font-semibold mb-2">AI 生成结果:</h4>
-              <div id="copywriting-result" class="p-4 bg-slate-900 rounded-lg border border-slate-800 min-h-[200px] text-sm text-slate-300 whitespace-pre-wrap">请先选择主题，然后点击生成...</div>
+              <div id="copywriting-result" class="p-4 bg-slate-900 rounded-lg border border-slate-800 min-h-[200px] text-sm text-slate-300 whitespace-pre-wrap">请至少提供一种输入（主题、要求或文件），然后点击上方“生成爆款文案”按钮...</div>
             </div>
           </div>
         </div>
         <div id="ai-content-analysis" class="hidden">
           <div class="space-y-4">
-            <p class="text-sm text-slate-400">点击下方按钮，AI将化身数据分析师，对当前看板上的核心指标进行全面分析，并生成一份专业的洞察报告。</p>
-            <button onclick="generateDataAnalysis()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-lg text-sm font-medium transition flex items-center justify-center">
-              <iconify-icon icon="ri:line-chart-line" class="mr-2"></iconify-icon>
-              开始智能分析
-            </button>
+            <p class="text-sm text-slate-400">点击上方右侧按钮，AI将化身数据分析师，对当前看板上的核心指标进行全面分析，并生成一份专业的洞察报告。</p>
+            
             <div class="pt-4">
-              <h4 class="text-base font-semibold mb-2">AI 数据分析报告:</h4>
-              <div id="analysis-result" class="p-4 bg-slate-900 rounded-lg border border-slate-800 min-h-[300px] text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">请点击按钮开始分析...</div>
+              <h4 class="text-base font-semibold mb-4 flex items-center text-emerald-400">
+                <iconify-icon icon="ri:file-chart-line" class="mr-2"></iconify-icon> AI 数据洞察报告:
+              </h4>
+              <div id="analysis-result" class="p-6 bg-slate-900 rounded-xl border border-slate-700 min-h-[300px] text-sm markdown-body shadow-inner">
+                <div class="text-center text-slate-500 mt-10">
+                  <iconify-icon icon="ri:robot-2-line" class="text-4xl mb-3 opacity-50"></iconify-icon>
+                  <p>点击上方右侧按钮，AI将为您生成深度数据诊断报告...</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -408,6 +489,10 @@
   <a href="javascript:showPanel('ai')" id="mob-nav-ai">
     <iconify-icon icon="ri:robot-2-line"></iconify-icon>
     AI助手
+  </a>
+  <a href="copywriting-list.html">
+    <iconify-icon icon="ri:file-list-2-line"></iconify-icon>
+    文案
   </a>
 </nav>
 
@@ -452,6 +537,20 @@ function switchAiTab(tabName) {
     const tabToActivate = document.getElementById(`ai-tab-${tabName}`);
     if (contentToShow) contentToShow.classList.remove('hidden');
     if (tabToActivate) tabToActivate.className = 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-sky-400 border-sky-500';
+
+    // 更新右侧操作按钮显示状态
+    const copywritingBtn = document.getElementById('btn-generate-copywriting');
+    const analysisBtn = document.getElementById('btn-generate-analysis');
+    
+    if (copywritingBtn) {
+        if (tabName === 'copywriting') copywritingBtn.classList.remove('hidden');
+        else copywritingBtn.classList.add('hidden');
+    }
+    
+    if (analysisBtn) {
+        if (tabName === 'analysis') analysisBtn.classList.remove('hidden');
+        else analysisBtn.classList.add('hidden');
+    }
 }
 
 const API = 'http://localhost:3388/api';
@@ -484,11 +583,79 @@ function updateDailyQuote() {
   }
 }
 
+// ── 数据管理 (备份与恢复) ─────────────────────────
+function exportData() {
+    if (!allData || allData.length === 0) {
+        alert('暂无数据可导出');
+        return;
+    }
+    const dataStr = JSON.stringify(allData, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `videodata_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+async function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!Array.isArray(data)) throw new Error('无效的数据格式');
+
+            if (!confirm(`确定要导入 ${data.length} 条记录吗？这可能会覆盖当天的重复数据。`)) return;
+
+            // 如果是 Node.js 环境，需要逐条 POST 到服务器
+            const isStatic = window.location.hostname.includes('github.io') || (window.location.protocol === 'file:' && !window.location.hostname);
+            
+            if (isStatic) {
+                // 静态环境直接存 LocalStorage
+                localStorage.setItem('videodata', JSON.stringify(data));
+                alert('导入成功 (LocalStorage)');
+                location.reload();
+            } else {
+                // 后端环境，通过 API 批量导入
+                let successCount = 0;
+                for (const item of data) {
+                    const res = await fetch(`${API}/data`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(item)
+                    });
+                    if (res.ok) successCount++;
+                }
+                alert(`导入完成：成功 ${successCount} 条`);
+                loadAllData();
+            }
+        } catch (err) {
+            console.error('导入失败:', err);
+            alert('导入失败: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
 // ── 入口 ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => { 
   loadAllData(); 
   updateDailyQuote();
   populateCopywritingThemes();
+  
+  // 处理 URL 参数，判断是否显示 AI 面板
+  const urlParams = new URLSearchParams(window.location.search);
+  const panel = urlParams.get('panel');
+  if (panel === 'ai') {
+    showPanel('ai');
+  }
+
   document.getElementById('chat-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
       sendChatMessage();
@@ -579,60 +746,190 @@ function addMessageToHistory(sender, message) {
   history.scrollTop = history.scrollHeight;
 }
 
-// ── AI 文案生成 ────────────────────────────────
+// ── AI 文案生成 (超级版) ────────────────────────────────
 function populateCopywritingThemes() {
   const themes = [...new Set(QUOTES.map(q => q.theme))];
   const select = document.getElementById('copywriting-theme');
+  // 添加一个"无"选项
+  themes.unshift("请选择主题");
   select.innerHTML = themes.map(theme => `<option value="${theme}">${theme}</option>`).join('');
 }
 
-async function generateCopywriting() {
-  const theme = document.getElementById('copywriting-theme').value;
-  const resultDiv = document.getElementById('copywriting-result');
-  
-  resultDiv.textContent = 'AI正在生成中，请稍候...';
-
-  const prompt = `你是一个短视频爆款文案生成器。请围绕主题“${theme}”，创作3条全新的、有吸引力的、适合用在短视频中的文案。请严格按照以下要求：\n1. 每条文案都要简短、有力、易于理解。\n2. 风格要符合现代社交媒体的传播规律，能引发用户共鸣或好奇心。\n3. 返回一个JSON格式的数组，其中包含三个字符串，每个字符串就是一条文案。例如：["文案一", "文案二", "文案三"]`;
-
-  try {
-    const response = await fetch(DEEPSEEK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { content: prompt, role: 'user' }
-        ],
-        temperature: 0.8, // 增加一点创造性
-        response_format: { type: "json_object" }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const reply = JSON.parse(data.choices[0].message.content);
-    
-    // 假设返回的是一个数组
-    if (Array.isArray(reply)) {
-      resultDiv.innerHTML = reply.map((text, index) => `<p class="mb-2">${index + 1}. ${text}</p>`).join('');
-    } else if (reply.data && Array.isArray(reply.data)) {
-      // 兼容可能的 { "data": ["文案一", ...] } 格式
-      resultDiv.innerHTML = reply.data.map((text, index) => `<p class="mb-2">${index + 1}. ${text}</p>`).join('');
+function updateFileName() {
+    const fileInput = document.getElementById('copywriting-file');
+    const fileListDiv = document.getElementById('file-list');
+    if (fileInput.files.length > 0) {
+        const fileNames = Array.from(fileInput.files).map(f => `<div class="flex items-center"><iconify-icon icon="ri:file-text-line" class="mr-1"></iconify-icon>${f.name}</div>`).join('');
+        fileListDiv.innerHTML = `<div class="space-y-1">${fileNames}</div>`;
     } else {
-        // 如果返回的不是预期的JSON数组，则直接显示原始回复
-        resultDiv.textContent = data.choices[0].message.content;
+        fileListDiv.innerHTML = '未选择文件';
+    }
+}
+
+function useLastPrompt() {
+    const lastPrompt = localStorage.getItem('lastCopywritingPrompt');
+    if (lastPrompt) {
+        document.getElementById('copywriting-prompt').value = lastPrompt;
+    } else {
+        alert('没有找到上次的描述记录');
+    }
+}
+
+function copyToClipboard(btn, encodedText) {
+    const text = decodeURIComponent(encodedText);
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = btn.querySelector('iconify-icon');
+        icon.setAttribute('icon', 'ri:check-line');
+        btn.classList.replace('text-sky-400', 'text-green-400');
+        setTimeout(() => {
+            icon.setAttribute('icon', 'ri:file-copy-line');
+            btn.classList.replace('text-green-400', 'text-sky-400');
+        }, 2000);
+    }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败');
+    });
+}
+
+function addToCopyList(btn, encodedTheme, encodedText) {
+    const theme = decodeURIComponent(encodedTheme);
+    const text = decodeURIComponent(encodedText);
+    const list = JSON.parse(localStorage.getItem('copywritingList') || '[]');
+    list.push({
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+        theme: theme !== '请选择主题' ? theme : '自定义主题',
+        text: text,
+        time: new Date().toLocaleString('zh-CN', { hour12: false }),
+        timestamp: new Date().getTime(),
+        used: false // 新增 used 属性，默认为 false
+    });
+    localStorage.setItem('copywritingList', JSON.stringify(list));
+    
+    // UI Feedback
+    const icon = btn.querySelector('iconify-icon');
+    const originalIcon = icon.getAttribute('icon');
+    icon.setAttribute('icon', 'ri:check-double-line');
+    btn.classList.replace('text-emerald-400', 'text-green-500');
+    btn.setAttribute('title', '已添加');
+    
+    setTimeout(() => {
+        icon.setAttribute('icon', originalIcon);
+        btn.classList.replace('text-green-500', 'text-emerald-400');
+        btn.setAttribute('title', '添加到文案页面');
+    }, 2000);
+}
+
+function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        reader.onload = async (event) => {
+            try {
+                if (extension === 'docx') {
+                    const arrayBuffer = event.target.result;
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    resolve({ name: file.name, content: result.value });
+                } else { // txt, md, etc.
+                    resolve({ name: file.name, content: event.target.result });
+                }
+            } catch (e) {
+                reject(e);
+            }
+        };
+        reader.onerror = error => reject(error);
+
+        if (extension === 'docx') {
+            reader.readAsArrayBuffer(file);
+        } else {
+            reader.readAsText(file, 'UTF-8');
+        }
+    });
+}
+
+async function generateCopywriting() {
+    const theme = document.getElementById('copywriting-theme').value;
+    const promptText = document.getElementById('copywriting-prompt').value;
+    const fileInput = document.getElementById('copywriting-file');
+    const resultDiv = document.getElementById('copywriting-result');
+    
+    resultDiv.innerHTML = '<div class="flex items-center justify-center"><iconify-icon icon="ri:loader-4-line" class="animate-spin text-2xl"></iconify-icon><span class="ml-2">AI正在生成中...</span></div>';
+
+    let allFilesContent = [];
+    if (fileInput.files.length > 0) {
+        try {
+            const fileReadPromises = Array.from(fileInput.files).map(readFile);
+            allFilesContent = await Promise.all(fileReadPromises);
+        } catch (e) {
+            resultDiv.textContent = '读取文件时出错: ' + e.message;
+            return;
+        }
     }
 
-  } catch (error) {
-    console.error('Error calling DeepSeek API for copywriting:', error);
-    resultDiv.textContent = '抱歉，生成文案时出错。请检查API Key或网络连接。\n错误详情: ' + error.message;
-  }
+    if (theme === '请选择主题' && !promptText && allFilesContent.length === 0) {
+        resultDiv.textContent = '请至少提供一种输入（主题、要求或文件）。';
+        return;
+    }
+
+    let finalPrompt = `你是一个短视频爆款文案生成器。请根据以下提供的多维度信息，创作3条全新的、有吸引力的短视频文案。\n请严格按照以下要求：\n1. 每条文案都要简短、有力、易于理解。\n2. 风格要符合现代社交媒体的传播规律，能引发用户共鸣或好奇心。\n3. 直接返回文案本身，必须生成3条，每条文案用 ### 分隔，不要添加其他多余内容。\n---`;
+
+    if (theme !== '请选择主题') {
+        finalPrompt += `\n\n【预设主题】:\n${theme}`;
+    }
+    if (promptText) {
+        finalPrompt += `\n\n【用户的具体要求】:\n${promptText}`;
+        localStorage.setItem('lastCopywritingPrompt', promptText);
+    }
+    if (allFilesContent.length > 0) {
+        finalPrompt += `\n\n【参考文件内容】:`;
+        allFilesContent.forEach(file => {
+            finalPrompt += `\n\n--- 文件: ${file.name} ---\n${file.content}`;
+        });
+    }
+
+    try {
+        const response = await fetch(DEEPSEEK_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'deepseek-chat',
+                messages: [
+                    { content: finalPrompt, role: 'user' }
+                ],
+                temperature: 0.8,
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const reply = data.choices[0].message.content;
+        
+        const lines = reply.split('###').map(line => line.trim()).filter(line => line !== '');
+        
+        resultDiv.innerHTML = lines.map((text, index) => `
+            <div class="mb-4 p-4 bg-slate-800 rounded-lg relative group">
+                <p class="whitespace-pre-wrap">${text}</p>
+                <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="copyToClipboard(this, \`${encodeURIComponent(text)}\`)" class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sky-400 transition" title="复制">
+                        <iconify-icon icon="ri:file-copy-line"></iconify-icon>
+                    </button>
+                    <button onclick="addToCopyList(this, \`${encodeURIComponent(theme)}\`, \`${encodeURIComponent(text)}\`)" class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-emerald-400 transition" title="添加到文案页面">
+                        <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error calling DeepSeek API for copywriting:', error);
+        resultDiv.textContent = '抱歉，生成文案时出错。请检查API Key或网络连接。\n错误详情: ' + error.message;
+    }
 }
 
 // ── AI 数据分析 ────────────────────────────────
@@ -643,23 +940,70 @@ async function generateDataAnalysis() {
     return;
   }
 
-  resultDiv.textContent = 'AI正在分析数据，请稍候... 这可能需要一点时间。'
+  resultDiv.innerHTML = '<div class="flex flex-col items-center justify-center text-slate-400 mt-10"><iconify-icon icon="ri:loader-4-line" class="animate-spin text-4xl mb-3 text-emerald-500"></iconify-icon><span>AI分析大脑正在高速运转，深度挖掘数据规律... 这可能需要一点时间。</span></div>';
 
-  // 提取最近最多7天的数据用于分析
-  const recentData = allData.slice(-7);
+  // 提取最近最多14天的数据用于分析（增加数据量以提供更全面的趋势）
+  const recentData = allData.slice(-14);
   const summary = {
-    period: `${recentData[0].date} to ${recentData[recentData.length - 1].date}`,
+    period: `${recentData[0].date} 至 ${recentData[recentData.length - 1].date}`,
     totalDays: recentData.length,
-    kpi: recentData.map(d => ({
+    overall: {
+      total_plays: recentData.reduce((sum, d) => sum + (d.plays || 0), 0),
+      avg_completion: (recentData.reduce((sum, d) => sum + (d.completion_rate || 0), 0) / recentData.length).toFixed(2) + '%',
+    },
+    daily_data: recentData.map(d => ({
       date: d.date,
+      title: d.title || '无标题',
+      theme: d.theme || '未分类',
+      status: d.status || '正常',
+      // 流量与完播
       plays: d.plays,
-      completion_rate: d.completion_rate,
-      avg_interaction: d.avg_interaction,
-      shares: d.shares
+      completion_rate: d.completion_rate + '%',
+      bounce_2s: d.bounce_2s + '%', // 2秒跳出率，关键的前置指标
+      completion_5s: d.completion_5s + '%',
+      avg_play_duration: d.avg_play_duration + 's',
+      avg_play_ratio: d.avg_play_ratio + '%', // 播放进度占比
+      // 互动详情
+      avg_interaction: d.avg_interaction + '%',
+      likes: d.likes,
+      shares: d.shares,
+      comments: d.comments,
+      collects: d.collects || 0, // 收藏量
+      danmaku: d.danmaku || 0    // 弹幕数
     }))
   };
 
-  const prompt = `你是一位资深的短视频数据分析师。这里有一份最近 ${summary.totalDays} 天的运营数据报告（JSON格式）。请你对这份数据进行深入分析，并生成一份专业的分析报告。\n\n数据如下：\n${JSON.stringify(summary, null, 2)}\n\n请在你的报告中包含以下几点：\n1.  **总体评价**：对近期的整体表现给出一个概括性的评价（例如：增长趋势、波动较大、表现平稳等）。\n2.  **核心指标分析**：\n    *   **播放量(plays)**：分析播放量的趋势和波动，并找出可能的原因。\n    *   **完播率(completion_rate)**：评估内容质量和观众粘性，分析完播率的变化。\n    *   **互动率(avg_interaction)**：分析用户参与度，特别是分享量(shares)的变化，评估内容的传播潜力。\n3.  **发现与洞察**：找出数据中隐藏的关键信息或异常点。例如，哪一天的数据特别突出（无论好坏），并尝试解释原因。\n4.  **优化建议**：基于你的分析，提供2-3条具体、可执行的优化建议，以提升未来的数据表现。\n\n请用清晰、专业的语言撰写报告，可以直接输出文本，使用换行符来组织段落。`;
+  const prompt = `你是一位顶级短视频运营专家和资深数据分析师。请对这份最近 ${summary.totalDays} 天的详细运营数据进行深度剖析，并生成一份具有商业实战价值的诊断与增长报告。
+
+【数据摘要】:
+${JSON.stringify(summary, null, 2)}
+
+请严格按照以下结构输出报告，使用标准的 Markdown 语法（支持 **加粗**、\`代码\`、> 引用、- 列表）：
+
+### 📈 1. 核心大盘诊断 (Overall Health)
+*   **流量走势**：概括播放量(\`plays\`)的波动规律（增长/平稳/下滑），识别出表现最突出的“爆款”日期。
+*   **账号质量评价**：结合 \`total_plays\`、\`avg_completion\` 和 \`status\`，给出账号当前的综合评分（满分100）及健康等级。
+
+> **核心结论**：在这里用一句话总结本周的核心表现（使用 blockquote 引用格式）。
+
+### 🎭 2. 爆款基因与内容偏好 (Content Insights)
+*   **主题/标题分析**：通过对比不同 \`theme\`(主题) 和 \`title\`(标题) 的表现，指出哪些选题更容易获得高播放量，哪些选题更容易引发深度留存。
+*   **收藏与弹幕**：分析 \`collects\`(收藏) 和 \`danmaku\`(弹幕) 的异常点，指出哪类内容具有极高的“社交货币”属性或互动共鸣。
+
+### 📉 3. 流量转化漏斗深度分析 (Funnel Diagnosis)
+*   **黄金2秒流失点**：深度剖析 \`bounce_2s\` (2秒跳出率)。如果高于30%，请分析标题或前置视觉钩子可能存在的问题。
+*   **正片留存力**：结合 \`completion_5s\` 和 \`avg_play_ratio\`，分析视频中段内容的吸引力。
+*   **完播深度**：评估 \`avg_play_duration\` 是否达到了视频总长度的理想预期。
+
+### 🚀 4. 实战级增长建议 (Actionable Strategy)
+基于以上数据洞察，给出 4 条**高度具体、可执行**的策略：
+1.  **选题优化**：具体指出下周应重点投入的 1-2 个主题。
+2.  **钩子调整**：针对 \`bounce_2s\` 较高的问题，给出 1 个具体的开头调整方案。
+3.  **互动策略**：如何利用 \`danmaku\` 或 \`comments\` 引导更多评论。
+4.  **节奏把控**：基于 \`avg_play_ratio\` 建议最佳的视频时长。
+
+---
+**注意**：请使用专业、干练的行业术语（如：GPM、黄金3秒、完播率、互动率等）。直接输出分析内容，不要有任何开场白或结尾套话。为了让报告更有层次感，请多使用 **加粗** 来强调关键数据。`;
 
   try {
     const response = await fetch(DEEPSEEK_API_URL, {
@@ -683,7 +1027,9 @@ async function generateDataAnalysis() {
 
     const data = await response.json();
     const reply = data.choices[0].message.content;
-    resultDiv.textContent = reply;
+    
+    // 使用 marked 库将 Markdown 转换为 HTML
+    resultDiv.innerHTML = marked.parse(reply);
 
   } catch (error) {
     console.error('Error calling DeepSeek API for analysis:', error);

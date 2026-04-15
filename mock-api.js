@@ -1,8 +1,12 @@
 (function() {
-  const isStaticEnv = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
-  if (!isStaticEnv) return;
+  const isStaticEnv = window.location.hostname.includes('github.io') || (window.location.protocol === 'file:' && !window.location.hostname);
+  
+  if (!isStaticEnv) {
+    console.log('🚀 检测到后端服务环境，mock-api 已禁用，将请求真实后端接口');
+    return;
+  }
 
-  console.log('🌐 检测到静态托管环境 (GitHub Pages / 本地文件)，启用纯前端 LocalStorage 数据模式');
+  console.log('🌐 检测到纯静态环境 (GitHub Pages / 本地 HTML 文件)，启用 LocalStorage 模拟数据库模式');
 
   const SEED_DATA = [
     {

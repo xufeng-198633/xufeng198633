@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport"/>
+<title>文案列表 - 早安FM</title>
+<script src="https://modao.cc/agent-py/static/source/js/tailwindcss.3.4.3.js"></script>
+<script src="https://modao.cc/agent-py/static/source/js/iconify-icon.min.1.0.7.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  body { font-family: 'Inter', 'PingFang SC', sans-serif; background-color: #020617; color: #f8fafc; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+  .glass-panel { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); }
+  
+  /* 手机底部导航 */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(15,23,42,0.95); backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+  }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; color: #64748b; font-size: 10px; text-decoration: none;
+    padding: 0.25rem 0.75rem; border-radius: 0.5rem; transition: color 0.2s;
+    flex: 1;
+  }
+  .bottom-nav a.active { color: #38bdf8; }
+  .bottom-nav a iconify-icon { font-size: 1.25rem; }
+
+  .sidebar { display: flex; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none !important; }
+    .bottom-nav { display: flex !important; }
+    body { overflow: auto; }
+    .page-body { flex-direction: column !important; height: auto !important; overflow: visible !important; }
+    .main-scroll { overflow: visible !important; height: auto !important; padding-bottom: 5rem; }
+    .page-header { padding: 0.875rem 1rem !important; }
+    .page-header h2 { font-size: 0.95rem !important; }
+  }
+
+  /* 模态框 */
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+  .modal.active { display: flex; }
+</style>
+</head>
+<body>
+<div class="page-body flex h-screen overflow-hidden">
+
+<!-- 侧边栏（PC） -->
+<aside class="sidebar w-72 glass-panel h-screen flex-col p-6 space-y-8 z-10 shrink-0">
+  <div>
+    <div class="flex items-center space-x-2 mb-8">
+      <iconify-icon class="text-3xl text-sky-400" icon="ri:video-chart-fill"></iconify-icon>
+      <h1 class="text-xl font-bold tracking-tight">早安FM-运营数据</h1>
+    </div>
+
+    <!-- 导航 -->
+    <nav class="space-y-1 mb-6">
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="index.html">
+        <iconify-icon icon="ri:dashboard-3-line"></iconify-icon>
+        <span class="text-sm font-medium">数据看板</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="details.html">
+        <iconify-icon icon="ri:list-unordered"></iconify-icon>
+        <span class="text-sm font-medium">数据明细表</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="input.html">
+        <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+        <span class="text-sm font-medium">数据录入</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition" href="index.html?panel=ai">
+        <iconify-icon icon="ri:robot-2-line"></iconify-icon>
+        <span class="text-sm font-medium">AI 助手</span>
+      </a>
+      <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20" href="copywriting-list.html">
+        <iconify-icon icon="ri:file-list-2-line"></iconify-icon>
+        <span class="text-sm font-medium">文案列表</span>
+      </a>
+    </nav>
+  </div>
+</aside>
+
+<!-- 主内容区 -->
+<main class="main-scroll flex-1 overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
+  <header class="sticky top-0 z-20 glass-panel px-4 py-3 flex justify-between items-center page-header">
+    <div>
+      <h2 class="text-xl font-bold">文案列表</h2>
+      <p class="text-xs text-slate-400 mt-0.5">您保存的AI生成文案</p>
+    </div>
+  </header>
+
+  <div class="p-4 sm:p-8">
+    <div class="glass-panel rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-900/50 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="px-6 py-4 font-semibold">主题名称</th>
+              <th class="px-6 py-4 font-semibold w-48">保存时间</th>
+              <th class="px-6 py-4 font-semibold w-32 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="list-container" class="divide-y divide-slate-800">
+            <!-- 列表内容由JS渲染 -->
+          </tbody>
+        </table>
+      </div>
+      <div id="empty-state" class="hidden py-12 text-center text-slate-500">
+        <iconify-icon icon="ri:inbox-line" class="text-4xl mb-2"></iconify-icon>
+        <p>暂无保存的文案</p>
+      </div>
+    </div>
+    <!-- 分页 -->
+    <div class="mt-4 flex justify-between items-center text-xs text-slate-500">
+        <p id="pagination-info"></p>
+        <div id="pagination-controls" class="flex space-x-2"></div>
+    </div>
+  </div>
+</main>
+
+</div>
+
+<!-- 手机底部导航 -->
+<nav class="bottom-nav">
+  <a href="index.html">
+    <iconify-icon icon="ri:dashboard-3-fill"></iconify-icon>
+    看板
+  </a>
+  <a href="details.html">
+    <iconify-icon icon="ri:list-unordered"></iconify-icon>
+    明细
+  </a>
+  <a href="input.html">
+    <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+    录入
+  </a>
+  <a href="index.html?panel=ai">
+    <iconify-icon icon="ri:robot-2-line"></iconify-icon>
+    AI助手
+  </a>
+  <a href="copywriting-list.html" class="active">
+    <iconify-icon icon="ri:file-list-2-line"></iconify-icon>
+    文案
+  </a>
+</nav>
+
+<!-- 详情模态框 -->
+<div id="detail-modal" class="modal">
+  <div class="bg-slate-900 border border-slate-700 rounded-xl w-11/12 max-w-2xl max-h-[80vh] flex flex-col">
+    <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+      <h3 class="text-lg font-bold text-sky-400" id="modal-title">文案详情</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
+        <iconify-icon icon="ri:close-line" class="text-2xl"></iconify-icon>
+      </button>
+    </div>
+    <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+      <p id="modal-content" class="whitespace-pre-wrap text-slate-300 leading-relaxed"></p>
+    </div>
+    <div class="p-4 border-t border-slate-800 flex justify-end space-x-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 transition">关闭</button>
+      <button id="modal-copy-btn" class="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center">
+        <iconify-icon icon="ri:file-copy-line" class="mr-1"></iconify-icon> 复制文案
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentList = [];
+let filteredList = []; // 用于分页和搜索的列表
+let currentPage = 1;
+const ITEMS_PER_PAGE = 12;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadList();
+});
+
+function loadList() {
+    const listJson = localStorage.getItem('copywritingList');
+    currentList = listJson ? JSON.parse(listJson) : [];
+    
+    // 确保所有旧数据都有 used 属性
+    currentList.forEach(item => {
+        if (typeof item.used === 'undefined') {
+            item.used = false;
+        }
+    });
+
+    // 按时间倒序 (最新在前)
+    currentList.sort((a, b) => {
+        if (a.timestamp && b.timestamp) {
+            return b.timestamp - a.timestamp; // 倒序
+        }
+        try {
+            // 兼容旧数据
+            const dateA = new Date(a.time);
+            const dateB = new Date(b.time);
+            return dateB - dateA; // 倒序
+        } catch (e) {
+            return 0;
+        }
+    });
+    
+    filteredList = [...currentList]; // 初始时，过滤列表与当前列表相同
+    renderList();
+}
+
+function renderList() {
+    const container = document.getElementById('list-container');
+    const emptyState = document.getElementById('empty-state');
+    const paginationInfo = document.getElementById('pagination-info');
+    
+    if (filteredList.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        paginationInfo.textContent = '暂无保存的文案';
+        renderPagination(0, 0);
+        return;
+    }
+    
+    emptyState.classList.add('hidden');
+
+    const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedItems = filteredList.slice(startIndex, endIndex);
+    
+    container.innerHTML = paginatedItems.map(item => `
+        <tr class="hover:bg-slate-800/50 transition cursor-pointer group" onclick="viewDetail('${item.id}')">
+            <td class="px-6 py-4">
+                <div class="font-medium text-slate-200 group-hover:text-sky-400 transition flex items-center">
+                    ${item.used ? '<iconify-icon icon="ri:check-double-line" class="text-green-500 mr-2" title="已使用"></iconify-icon>' : ''}
+                    ${item.theme}
+                </div>
+                <div class="text-xs text-slate-500 truncate max-w-md mt-1">${item.text.replace(/\n/g, ' ')}</div>
+            </td>
+            <td class="px-6 py-4 text-slate-400 text-sm">${item.time}</td>
+            <td class="px-6 py-4 text-right">
+                <div class="flex justify-end space-x-2">
+                    <button onclick="event.stopPropagation(); toggleUsedStatus('${item.id}', this)" class="p-1.5 text-slate-400 hover:text-green-400 bg-slate-800 hover:bg-slate-700 rounded transition" title="${item.used ? '取消标记为已使用' : '标记为已使用'}">
+                        <iconify-icon icon="${item.used ? 'ri:check-double-line' : 'ri:check-line'}"></iconify-icon>
+                    </button>
+                    <button onclick="event.stopPropagation(); copyItem('${item.id}', this)" class="p-1.5 text-slate-400 hover:text-sky-400 bg-slate-800 hover:bg-slate-700 rounded transition" title="复制">
+                        <iconify-icon icon="ri:file-copy-line"></iconify-icon>
+                    </button>
+                    <button onclick="event.stopPropagation(); deleteItem('${item.id}')" class="p-1.5 text-slate-400 hover:text-red-400 bg-slate-800 hover:bg-slate-700 rounded transition" title="删除">
+                        <iconify-icon icon="ri:delete-bin-line"></iconify-icon>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    paginationInfo.textContent = `显示 ${startIndex + 1}-${Math.min(endIndex, filteredList.length)} 条，共 ${filteredList.length} 条`;
+    renderPagination(totalPages, currentPage);
+}
+
+function renderPagination(totalPages, currentPage) {
+    const paginationControls = document.getElementById('pagination-controls');
+    paginationControls.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    paginationControls.innerHTML += `
+        <button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}
+                class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+            <iconify-icon icon="ri:arrow-left-s-line"></iconify-icon>
+        </button>
+    `;
+
+    // Page numbers
+    let startPage = Math.max(1, currentPage - 1);
+    let endPage = Math.min(totalPages, currentPage + 1);
+
+    if (currentPage === 1) endPage = Math.min(totalPages, 3);
+    if (currentPage === totalPages) startPage = Math.max(1, totalPages - 2);
+
+    for (let i = startPage; i <= endPage; i++) {
+        paginationControls.innerHTML += `
+            <button onclick="goToPage(${i})"
+                    class="px-3 py-1 rounded ${i === currentPage ? 'bg-sky-500 text-white' : 'bg-slate-800 hover:bg-slate-700'} transition">
+                ${i}
+            </button>
+        `;
+    }
+
+    // Next button
+    paginationControls.innerHTML += `
+        <button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}
+                class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+            <iconify-icon icon="ri:arrow-right-s-line"></iconify-icon>
+        </button>
+    `;
+}
+
+function goToPage(page) {
+    if (page < 1 || page > Math.ceil(filteredList.length / ITEMS_PER_PAGE)) return;
+    currentPage = page;
+    renderList();
+}
+
+function viewDetail(id) {
+    const item = currentList.find(i => i.id === id);
+    if (!item) return;
+    
+    document.getElementById('modal-title').textContent = item.theme;
+    document.getElementById('modal-content').textContent = item.text;
+    
+    const copyBtn = document.getElementById('modal-copy-btn');
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(item.text).then(() => {
+            const originalHtml = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<iconify-icon icon="ri:check-line" class="mr-1"></iconify-icon> 已复制';
+            copyBtn.classList.replace('bg-sky-500', 'bg-green-500');
+            copyBtn.classList.replace('hover:bg-sky-600', 'hover:bg-green-600');
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHtml;
+                copyBtn.classList.replace('bg-green-500', 'bg-sky-500');
+                copyBtn.classList.replace('hover:bg-green-600', 'hover:bg-sky-600');
+            }, 2000);
+        });
+    };
+    
+    document.getElementById('detail-modal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('detail-modal').classList.remove('active');
+}
+
+function copyItem(id, btn) {
+    const item = currentList.find(i => i.id === id);
+    if (!item) return;
+    
+    navigator.clipboard.writeText(item.text).then(() => {
+        const icon = btn.querySelector('iconify-icon');
+        icon.setAttribute('icon', 'ri:check-line');
+        btn.classList.replace('text-slate-400', 'text-green-400');
+        setTimeout(() => {
+            icon.setAttribute('icon', 'ri:file-copy-line');
+            btn.classList.replace('text-green-400', 'text-slate-400');
+        }, 2000);
+    });
+}
+
+function deleteItem(id) {
+    if (confirm('确定要删除这条文案吗？')) {
+        currentList = currentList.filter(i => i.id !== id);
+        localStorage.setItem('copywritingList', JSON.stringify(currentList));
+        // 删除后重新加载列表，确保分页正确
+        loadList(); 
+    }
+}
+
+function toggleUsedStatus(id, btn) {
+    const itemIndex = currentList.findIndex(i => i.id === id);
+    if (itemIndex === -1) return;
+
+    currentList[itemIndex].used = !currentList[itemIndex].used;
+    localStorage.setItem('copywritingList', JSON.stringify(currentList));
+    
+    // UI Feedback
+    const icon = btn.querySelector('iconify-icon');
+    if (currentList[itemIndex].used) {
+        icon.setAttribute('icon', 'ri:check-double-line');
+        btn.classList.replace('text-slate-400', 'text-green-400');
+        btn.setAttribute('title', '取消标记为已使用');
+    } else {
+        icon.setAttribute('icon', 'ri:check-line');
+        btn.classList.replace('text-green-400', 'text-slate-400');
+        btn.setAttribute('title', '标记为已使用');
+    }
+    // 重新渲染列表以更新主题名称旁的已使用图标
+    renderList();
+}
+</script>
+</body>
+</html>
