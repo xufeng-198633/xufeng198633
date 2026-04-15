@@ -114,7 +114,7 @@
 <div class="page-body flex h-screen overflow-hidden">
 
 <!-- 侧边栏（PC） -->
-<aside class="sidebar w-72 glass-panel h-screen flex-col p-6 space-y-8 z-10 shrink-0">
+<aside class="sidebar w-72 glass-panel h-screen flex-col p-6 space-y-8 z-10 shrink-0 overflow-y-auto custom-scrollbar">
   <div>
     <div class="flex items-center space-x-2 mb-8">
       <iconify-icon class="text-3xl text-sky-400" icon="ri:video-chart-fill"></iconify-icon>
@@ -443,7 +443,7 @@
             
             <div class="pt-4">
               <h4 class="text-base font-semibold mb-2">AI 生成结果:</h4>
-              <div id="copywriting-result" class="p-4 bg-slate-900 rounded-lg border border-slate-800 min-h-[200px] text-sm text-slate-300 whitespace-pre-wrap">请至少提供一种输入（主题、要求或文件），然后点击上方“生成爆款文案”按钮...</div>
+              <div id="copywriting-result" class="p-4 bg-slate-900 rounded-lg border border-slate-800 min-h-[200px] text-sm text-slate-300">请至少提供一种输入（主题、要求或文件），然后点击上方“生成爆款文案”按钮...</div>
             </div>
           </div>
         </div>
@@ -913,14 +913,14 @@ async function generateCopywriting() {
         const lines = reply.split('###').map(line => line.trim()).filter(line => line !== '');
         
         resultDiv.innerHTML = lines.map((text, index) => `
-            <div class="mb-4 p-4 bg-slate-800 rounded-lg relative group">
+            <div class="p-4 mt-2 bg-slate-800 rounded-lg relative group border border-slate-700/50 hover:border-sky-500/30 transition-all">
                 <p class="whitespace-pre-wrap">${text}</p>
-                <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="copyToClipboard(this, \`${encodeURIComponent(text)}\`)" class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sky-400 transition" title="复制">
-                        <iconify-icon icon="ri:file-copy-line"></iconify-icon>
+                <div class="absolute top-2 right-2 flex space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button style=" width: 32px; height: 32px; align-items: center; justify-content: center;"  onclick="copyToClipboard(this, \`${encodeURIComponent(text)}\`)" class="p-1  text-sky-400" title="复制">
+                        <iconify-icon icon="ri:file-copy-line" class="text-xl"></iconify-icon>
                     </button>
-                    <button onclick="addToCopyList(this, \`${encodeURIComponent(theme)}\`, \`${encodeURIComponent(text)}\`)" class="p-1.5 bg-slate-700 hover:bg-slate-600 rounded text-emerald-400 transition" title="添加到文案页面">
-                        <iconify-icon icon="ri:add-circle-line"></iconify-icon>
+                    <button style=" width: 32px; height: 32px; align-items: center; justify-content: center;"  onclick="addToCopyList(this, \`${encodeURIComponent(theme)}\`, \`${encodeURIComponent(text)}\`)" class="p-1 text-emerald-400" title="添加到文案页面">
+                        <iconify-icon icon="ri:add-circle-line" class="text-xl"></iconify-icon>
                     </button>
                 </div>
             </div>
