@@ -123,10 +123,12 @@
       <!-- 主题筛选 -->
       <select id="theme-filter" onchange="applySearch()" class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 outline-none focus:ring-1 focus:ring-sky-500">
         <option value="">全部主题</option>
-        <option value="城市烟火">城市烟火</option>
-        <option value="上班通勤">上班通勤</option>
-        <option value="休闲时刻">休闲时刻</option>
-        <option value="停止讨好">停止讨好</option>
+        <option value="职场系列">职场系列</option>
+        <option value="人生感悟">人生感悟</option>
+        <option value="爱自己">爱自己</option>
+        <option value="成长逆袭">成长逆袭</option>
+        <option value="情感释怀">情感释怀</option>
+        <option value="其他">其他</option>
       </select>
       <!-- 状态筛选 -->
       <select id="status-filter" onchange="applySearch()" class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 outline-none focus:ring-1 focus:ring-sky-500">
@@ -143,42 +145,48 @@
 
   <div class="p-8">
     <!-- 桌面端表格 -->
-    <div class="table-desktop glass-panel rounded-2xl overflow-hidden">
-      <table class="w-full text-left text-sm">
+    <div class="table-desktop glass-panel rounded-2xl overflow-x-auto w-full">
+      <table class="min-w-full w-full text-left text-sm table-auto">
         <thead class="bg-slate-900/50 text-slate-400 border-b border-slate-800">
             <tr>
-              <th onclick="sortBy('date')" class="px-5 py-4 font-semibold whitespace-nowrap" data-col="date">
+              <th onclick="sortBy('date')" class="px-4 py-4 font-semibold whitespace-nowrap" data-col="date">
                 发布日期 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th class="px-5 py-4 font-semibold">视频标题</th>
-              <th class="px-5 py-4 font-semibold">主题</th>
-              <th onclick="sortBy('plays')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="plays">
+              <th class="px-4 py-4 font-semibold min-w-[150px]">视频标题</th>
+              <th class="px-4 py-4 font-semibold whitespace-nowrap">主题</th>
+              <th onclick="sortBy('plays')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="plays">
                 播放量 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th onclick="sortBy('likes')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="likes">
+              <th onclick="sortBy('likes')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="likes">
                 点赞 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th onclick="sortBy('shares')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="shares">
+              <th onclick="sortBy('shares')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="shares">
                 分享 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th onclick="sortBy('collects')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="collects">
+              <th onclick="sortBy('collects')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="collects">
                 收藏 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th onclick="sortBy('completion_rate')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="completion_rate">
+              <th onclick="sortBy('comments')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="comments">
+                评论 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('danmaku')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="danmaku">
+                弹幕 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
+              </th>
+              <th onclick="sortBy('completion_rate')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="completion_rate">
                 完播率 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th onclick="sortBy('bounce_2s')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="bounce_2s">
+              <th onclick="sortBy('bounce_2s')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="bounce_2s">
                 2s跳出 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th onclick="sortBy('avg_interaction')" class="px-5 py-4 font-semibold text-right whitespace-nowrap" data-col="avg_interaction">
+              <th onclick="sortBy('avg_interaction')" class="px-4 py-4 font-semibold text-right whitespace-nowrap" data-col="avg_interaction">
                 互动率 <iconify-icon icon="ri:arrow-up-down-line" class="ml-1 opacity-40"></iconify-icon>
               </th>
-              <th class="px-5 py-4 font-semibold">状态</th>
-              <th class="px-5 py-4 font-semibold">操作</th>
+              <th class="px-4 py-4 font-semibold whitespace-nowrap">状态</th>
+              <th class="px-4 py-4 font-semibold whitespace-nowrap">操作</th>
             </tr>
           </thead>
           <tbody id="details-tbody" class="divide-y divide-slate-800">
-            <tr><td colspan="12" class="py-8 text-center text-slate-600">加载中...</td></tr>
+            <tr><td colspan="14" class="py-8 text-center text-slate-600">加载中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -188,7 +196,7 @@
     <div id="mobile-cards" class="mobile-cards space-y-3"></div>
 
     <!-- 分页 & 统计 -->
-    <div class="mt-6 flex justify-between items-center text-xs text-slate-500 w-full">
+    <div class="mt-0 px-10 flex justify-between items-center text-xs text-slate-500 w-full">
       <p id="pagination-info">加载中...</p>
       <div class="flex space-x-2 flex-1 justify-end" id="pagination-btns"></div>
     </div>
@@ -239,15 +247,15 @@ function renderTable() {
   const tbody = document.getElementById('details-tbody');
 
   if (!pageData.length) {
-    tbody.innerHTML = `<tr><td colspan="12" class="py-8 text-center text-slate-600">暂无数据</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14" class="py-8 text-center text-slate-600">暂无数据</td></tr>`;
     document.getElementById('pagination-info').textContent = '暂无数据';
     document.getElementById('pagination-btns').innerHTML = '';
     return;
   }
 
   const themeColors = {
-    '城市烟火': 'amber', '上班通勤': 'purple',
-    '休闲时刻': 'emerald', '停止讨好': 'sky', '': 'slate'
+    '职场系列': 'blue', '人生感悟': 'emerald',
+    '爱自己': 'rose', '成长逆袭': 'amber', '情感释怀': 'purple', '其他': 'slate'
   };
   const statusConfig = {
     '爆款': { color: 'green', icon: 'ri:fire-line' },
@@ -265,24 +273,26 @@ function renderTable() {
 
     return `
     <tr class="hover:bg-sky-500/5 transition">
-      <td class="px-5 py-4 text-slate-400 whitespace-nowrap">${d.date}</td>
-      <td class="px-5 py-4 font-medium max-w-xs truncate" title="${d.title || ''}">${d.title || '<span class="text-slate-600">—</span>'}</td>
-      <td class="px-5 py-4">
+      <td class="px-4 py-4 text-slate-400 whitespace-nowrap">${d.date}</td>
+      <td class="px-4 py-4 font-medium max-w-[200px] truncate" title="${d.title || ''}">${d.title || '<span class="text-slate-600">—</span>'}</td>
+      <td class="px-4 py-4 whitespace-nowrap">
         ${theme ? `<span class="px-2 py-0.5 bg-${tc}-500/20 text-${tc}-400 rounded-full text-[10px]">${theme}</span>` : '<span class="text-slate-600">—</span>'}
       </td>
-      <td class="px-5 py-4 text-right font-mono">${(d.plays||0).toLocaleString()}</td>
-      <td class="px-5 py-4 text-right font-mono text-purple-400">${(d.likes||0).toLocaleString()}</td>
-      <td class="px-5 py-4 text-right font-mono text-sky-400 font-bold">${d.shares||0}</td>
-      <td class="px-5 py-4 text-right font-mono text-orange-400">${d.collects||0}</td>
-      <td class="px-5 py-4 text-right font-mono text-${completionColor}-400">${d.completion_rate||0}%</td>
-      <td class="px-5 py-4 text-right font-mono text-${bounceColor}-400">${d.bounce_2s||0}%</td>
-      <td class="px-5 py-4 text-right font-mono text-yellow-400">${d.avg_interaction||0}%</td>
-      <td class="px-5 py-4">
+      <td class="px-4 py-4 text-right font-mono">${(d.plays||0).toLocaleString()}</td>
+      <td class="px-4 py-4 text-right font-mono text-purple-400">${(d.likes||0).toLocaleString()}</td>
+      <td class="px-4 py-4 text-right font-mono text-sky-400 font-bold">${d.shares||0}</td>
+      <td class="px-4 py-4 text-right font-mono text-orange-400">${d.collects||0}</td>
+      <td class="px-4 py-4 text-right font-mono text-pink-400">${d.comments||0}</td>
+      <td class="px-4 py-4 text-right font-mono text-teal-400">${d.danmaku||0}</td>
+      <td class="px-4 py-4 text-right font-mono text-${completionColor}-400">${d.completion_rate||0}%</td>
+      <td class="px-4 py-4 text-right font-mono text-${bounceColor}-400">${d.bounce_2s||0}%</td>
+      <td class="px-4 py-4 text-right font-mono text-yellow-400">${d.avg_interaction||0}%</td>
+      <td class="px-4 py-4 whitespace-nowrap">
         <span class="flex items-center text-xs text-${sc.color}-400">
           <iconify-icon class="mr-1" icon="${sc.icon}"></iconify-icon> ${status}
         </span>
       </td>
-      <td class="px-5 py-4 whitespace-nowrap">
+      <td class="px-4 py-4 whitespace-nowrap">
         <a href="input.html" onclick="sessionStorage.setItem('editId','${d._id}')"
            class="text-slate-500 hover:text-sky-400 transition mr-2" title="编辑">
           <iconify-icon icon="ri:edit-line"></iconify-icon>
@@ -309,8 +319,8 @@ function renderMobileCards() {
   }
 
   const themeColors = {
-    '城市烟火': 'amber', '上班通勤': 'purple',
-    '休闲时刻': 'emerald', '停止讨好': 'sky', '': 'slate'
+    '职场系列': 'blue', '人生感悟': 'emerald',
+    '爱自己': 'rose', '成长逆袭': 'amber', '情感释怀': 'purple', '其他': 'slate'
   };
   const statusConfig = {
     '爆款': { color: 'green', icon: 'ri:fire-line' },

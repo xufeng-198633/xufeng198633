@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport"/>
-<title>短视频运营数据分析看板 - 2026</title>
+<title>早安FM-运营数据</title>
 <script src="https://modao.cc/agent-py/static/source/js/tailwindcss.3.4.3.js"></script>
 <script src="https://modao.cc/agent-py/static/source/js/echarts.min.5.4.3.js"></script>
 <script src="https://modao.cc/agent-py/static/source/js/iconify-icon.min.1.0.7.js"></script>
@@ -80,7 +80,7 @@
   <div>
     <div class="flex items-center space-x-2 mb-8">
       <iconify-icon class="text-3xl text-sky-400" icon="ri:video-chart-fill"></iconify-icon>
-      <h1 class="text-xl font-bold tracking-tight">DataPulse <span class="text-sky-400">2026</span></h1>
+      <h1 class="text-xl font-bold tracking-tight">早安FM-运营数据</h1>
     </div>
 
     <!-- 导航 -->
@@ -120,9 +120,20 @@
         <button onclick="switchDimension('quality')" id="btn-quality" class="text-left text-sm px-4 py-2 rounded hover:bg-slate-800 text-slate-300 transition">视频质量</button>
       </div>
     </div>
+
+    <!-- 每日电台寄语 -->
+    <div class="">
+      <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+        <iconify-icon class="mr-2 text-rose-400" icon="ri:heart-3-line"></iconify-icon> 每日电台寄语
+      </h3>
+      <div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+        <p id="daily-quote" class="text-xs text-slate-300 italic leading-relaxed">加载中...</p>
+        <p id="daily-theme" class="text-[10px] text-sky-400 mt-2 text-right">--</p>
+      </div>
+    </div>
   </div>
 
-  <div class="mt-auto">
+  <div class="">
     <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
       <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">系统状态</p>
       <div id="sys-status" class="flex items-center space-x-2 text-xs text-yellow-400">
@@ -245,9 +256,9 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sub-charts">
       <div class="glass-panel p-5 rounded-2xl sub-chart-card">
         <h4 class="text-sm font-bold mb-3 flex items-center">
-          <iconify-icon class="mr-2 text-sky-400" icon="ri:folders-line"></iconify-icon> 分享与收藏量
+          <iconify-icon class="mr-2 text-sky-400" icon="ri:pie-chart-2-line"></iconify-icon> 互动结构占比
         </h4>
-        <div class="h-64" id="share-collect-chart"></div>
+        <div class="h-64" id="interaction-pie-chart"></div>
       </div>
       <div class="glass-panel p-5 rounded-2xl sub-chart-card">
         <h4 class="text-sm font-bold mb-3 flex items-center">
@@ -315,8 +326,34 @@ const API = 'http://localhost:3388/api';
 let allData = [];
 let currentDimension = 'traffic';
 
+const QUOTES = [
+  { text: "上班别拼，命比工作值钱；下班就走，别把命搭进去。", theme: "职场系列" },
+  { text: "少发牢骚，抱怨没人爱听；少生闲气，气坏身体没人替。", theme: "职场系列" },
+  { text: "别想太多，想多了心累；少比来比去，比死人。", theme: "人生感悟" },
+  { text: "多疼自己，没人会心疼你；少讨好人，讨好不值钱。", theme: "爱自己" },
+  { text: "现在吃苦是为了以后；悄悄努力变强大，惊艳所有人。", theme: "成长逆袭" },
+  { text: "不爱了就放手，纠缠没用，勉强没幸福。", theme: "情感释怀" },
+  { text: "别太执着，放手也是赢；别太着急，慢慢来也行。", theme: "人生感悟" },
+  { text: "年轻就要拼命拼，不拼不搏，人生白活。", theme: "成长逆袭" },
+  { text: "懂比爱更重要，爱你的人很多，懂你的人很少。", theme: "情感释怀" },
+  { text: "多给自己买花，浪漫给自己；多宠自己，你是最贵的。", theme: "爱自己" }
+];
+
+function updateDailyQuote() {
+  const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  const quoteEl = document.getElementById('daily-quote');
+  const themeEl = document.getElementById('daily-theme');
+  if (quoteEl && themeEl) {
+    quoteEl.innerHTML = `<iconify-icon icon="ri:double-quotes-l" class="text-rose-500/50 mr-1"></iconify-icon>${q.text}<iconify-icon icon="ri:double-quotes-r" class="text-rose-500/50 ml-1"></iconify-icon>`;
+    themeEl.textContent = `——《${q.theme}》`;
+  }
+}
+
 // ── 入口 ─────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => { loadAllData(); });
+document.addEventListener('DOMContentLoaded', () => { 
+  loadAllData(); 
+  updateDailyQuote();
+});
 
 async function loadAllData() {
   const icon = document.getElementById('refresh-icon');
@@ -429,11 +466,11 @@ const commonTheme = {
 
 function renderCharts(data) {
   renderMainChart(data);
-  renderShareCollect(data);
+  renderInteractionPie(data);
   renderPlayTime(data);
   renderBounceChart(data);
   window.addEventListener('resize', () => {
-    ['main-composite-chart','share-collect-chart','play-time-chart','bounce-chart'].forEach(id => {
+    ['main-composite-chart','interaction-pie-chart','play-time-chart','bounce-chart'].forEach(id => {
       const inst = echarts.getInstanceByDom(document.getElementById(id));
       if (inst) inst.resize();
     });
@@ -471,17 +508,20 @@ function renderMainChart(data) {
       { name:'点赞量', type:'bar', barWidth:'25%',
         itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#a855f7'},{offset:1,color:'#4c1d95'}]), borderRadius:[4,4,0,0]},
         data: data.map(d => d.likes) },
-      { name:'分享量', type:'bar', barWidth:'25%',
+      { name:'分享量', type:'bar', barWidth:'20%',
         itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#38bdf8'},{offset:1,color:'#0369a1'}]), borderRadius:[4,4,0,0]},
         data: data.map(d => d.shares) },
-      { name:'收藏量', type:'bar', barWidth:'25%',
+      { name:'收藏量', type:'bar', barWidth:'20%',
         itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#fb923c'},{offset:1,color:'#9a3412'}]), borderRadius:[4,4,0,0]},
         data: data.map(d => d.collects) },
+      { name:'评论量', type:'bar', barWidth:'20%',
+        itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#f43f5e'},{offset:1,color:'#9f1239'}]), borderRadius:[4,4,0,0]},
+        data: data.map(d => d.comments || 0) },
       { name:'互动率(%)', type:'line', yAxisIndex:1, smooth:true, symbol:'circle',
         lineStyle:{color:'#facc15',width:3}, itemStyle:{color:'#facc15'},
         data: data.map(d => d.avg_interaction) }
     ];
-    legend = ['点赞量','分享量','收藏量','互动率(%)'];
+    legend = ['点赞量','分享量','收藏量','评论量','互动率(%)'];
   } else {
     series = [
       { name:'完播率(%)', type:'line', smooth:true, yAxisIndex:0,
@@ -508,35 +548,57 @@ function renderMainChart(data) {
     tooltip: { trigger:'axis', axisPointer:{type:'cross'},
       backgroundColor:'rgba(15,23,42,0.9)', borderColor:'#334155', textStyle:{color:'#f8fafc',fontSize:11} },
     grid: { top: isMobile ? '20%' : '15%', left:'3%', right: isMobile ? '5%' : '12%', bottom:'10%', containLabel:true },
-    legend: { data: legend, top:0, textStyle:{fontSize: isMobile ? 10 : 12} },
-    xAxis: { type:'category', data:dates, axisLine:{lineStyle:{color:'#334155'}}, axisLabel:{fontSize: isMobile ? 10 : 12} },
+    legend: { data: legend, top:0, textStyle:{fontSize: isMobile ? 10 : 12, color: '#ffffff'} },
+    xAxis: { type:'category', data:dates, axisLine:{lineStyle:{color:'#334155'}}, axisLabel:{fontSize: isMobile ? 10 : 12, color: '#ffffff'} },
     yAxis: [
       { type:'value', name: isMobile ? '' : '播放/数量', position:'left',
         axisLine:{show:true,lineStyle:{color:'#0ea5e9'}},
+        axisLabel: {color: '#ffffff'},
+        nameTextStyle: {color: '#ffffff'},
         splitLine:{lineStyle:{color:'#1e293b',type:'dashed'}} },
       { type:'value', name: isMobile ? '' : '百分比/秒', position:'right',
         axisLine:{show:true,lineStyle:{color:'#facc15'}},
+        axisLabel: {color: '#ffffff'},
+        nameTextStyle: {color: '#ffffff'},
         splitLine:{show:false} },
       { type:'value', name: isMobile ? '' : '完播系列(%)', position:'right', offset: isMobile ? 0 : 60, min:0, max:100,
-        axisLine:{show:!isMobile,lineStyle:{color:'#10b981'}}, splitLine:{show:false}, show: !isMobile }
+        axisLine:{show:!isMobile,lineStyle:{color:'#10b981'}}, 
+        axisLabel: {color: '#ffffff'},
+        nameTextStyle: {color: '#ffffff'},
+        splitLine:{show:false}, show: !isMobile }
     ],
     series
   }, true);
 }
 
-function renderShareCollect(data) {
-  const el = document.getElementById('share-collect-chart');
+function renderInteractionPie(data) {
+  const el = document.getElementById('interaction-pie-chart');
   let chart = echarts.getInstanceByDom(el) || echarts.init(el);
-  const dates = data.map(d => d.date.slice(5));
+  
+  const totalLikes = data.reduce((s,d) => s + (d.likes||0), 0);
+  const totalShares = data.reduce((s,d) => s + (d.shares||0), 0);
+  const totalCollects = data.reduce((s,d) => s + (d.collects||0), 0);
+  const totalComments = data.reduce((s,d) => s + (d.comments||0), 0);
+  const totalDanmaku = data.reduce((s,d) => s + (d.danmaku||0), 0);
+
   chart.setOption({
     ...commonTheme,
-    tooltip: { trigger:'axis', axisPointer:{type:'shadow'} },
-    grid: { top:20, left:10, right:10, bottom:0, containLabel:true },
-    xAxis: { type:'category', data:dates, axisLabel:{fontSize:10} },
-    yAxis: { type:'value', splitLine:{lineStyle:{color:'#1e293b'}} },
+    tooltip: { trigger:'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { bottom: 0, textStyle: { color: '#94a3b8', fontSize: 10 } },
     series: [
-      { name:'分享', type:'bar', stack:'total', itemStyle:{color:'#38bdf8'}, data: data.map(d => d.shares) },
-      { name:'收藏', type:'bar', stack:'total', itemStyle:{color:'#1e3a8a'}, data: data.map(d => d.collects) }
+      {
+        type: 'pie', radius: ['40%', '70%'], center: ['50%', '45%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 10, borderColor: '#0f172a', borderWidth: 2 },
+        label: { show: false },
+        data: [
+          { value: totalLikes, name: '点赞', itemStyle:{color:'#a855f7'} },
+          { value: totalShares, name: '分享', itemStyle:{color:'#38bdf8'} },
+          { value: totalCollects, name: '收藏', itemStyle:{color:'#fb923c'} },
+          { value: totalComments, name: '评论', itemStyle:{color:'#f43f5e'} },
+          { value: totalDanmaku, name: '弹幕', itemStyle:{color:'#2dd4bf'} }
+        ]
+      }
     ]
   });
 }

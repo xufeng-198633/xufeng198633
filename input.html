@@ -169,10 +169,11 @@
             <label class="block text-xs text-slate-400 mb-1.5 font-medium">视频主题</label>
             <select name="theme" id="theme" class="input-field">
               <option value="">选择主题</option>
-              <option value="城市烟火">城市烟火</option>
-              <option value="上班通勤">上班通勤</option>
-              <option value="休闲时刻">休闲时刻</option>
-              <option value="停止讨好">停止讨好</option>
+              <option value="职场系列">职场系列</option>
+              <option value="人生感悟">人生感悟</option>
+              <option value="爱自己">爱自己</option>
+              <option value="成长逆袭">成长逆袭</option>
+              <option value="情感释怀">情感释怀</option>
               <option value="其他">其他</option>
             </select>
           </div>
@@ -202,6 +203,16 @@
             <input type="number" name="collects" id="collects" class="input-field" placeholder="e.g. 85" min="0" required oninput="calcInteraction()"/>
           </div>
         </div>
+        <div class="grid gap-4 grid-2 mt-4" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑤ 评论量 <span class="text-red-400">*</span></label>
+            <input type="number" name="comments" id="comments" class="input-field" placeholder="e.g. 120" min="0" required oninput="calcInteraction()"/>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑥ 弹幕量 <span class="text-red-400">*</span></label>
+            <input type="number" name="danmaku" id="danmaku" class="input-field" placeholder="e.g. 50" min="0" required oninput="calcInteraction()"/>
+          </div>
+        </div>
 
         <!-- 互动率自动计算展示 -->
         <div class="mt-4 auto-calc-box">
@@ -209,9 +220,9 @@
             <div>
               <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
                 <iconify-icon class="text-purple-400" icon="ri:magic-line"></iconify-icon>
-                ⑪ 平均互动率（自动计算）
+                ⑦ 平均互动率（自动计算）
               </p>
-              <p class="text-[10px] text-slate-600 mt-0.5">= (点赞 + 分享 + 收藏) ÷ 播放量 × 100%</p>
+              <p class="text-[10px] text-slate-600 mt-0.5">= (点赞 + 分享 + 收藏 + 评论 + 弹幕) ÷ 播放量 × 100%</p>
             </div>
             <div class="text-right">
               <span class="auto-calc-value" id="interaction-display">—</span>
@@ -223,7 +234,7 @@
         </div>
 
         <div class="mt-4">
-          <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑩ 总播放量（历史累计）<span class="text-red-400">*</span></label>
+          <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑧ 总播放量（历史累计）<span class="text-red-400">*</span></label>
           <div class="flex gap-3">
             <input type="number" name="total_plays" id="total_plays" class="input-field" placeholder="e.g. 186402  （历史所有播放量的总和）" min="0" required/>
             <button type="button" onclick="autoCalcTotal()" class="shrink-0 px-4 py-2 bg-slate-800 text-xs text-slate-300 rounded-lg hover:bg-slate-700 transition whitespace-nowrap">
@@ -241,15 +252,15 @@
         </h3>
         <div class="grid gap-4 grid-3" style="grid-template-columns: repeat(3, minmax(0,1fr));">
           <div>
-            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑤ 完播率 (%) <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑨ 完播率 (%) <span class="text-red-400">*</span></label>
             <input type="number" name="completion_rate" id="completion_rate" class="input-field" placeholder="e.g. 52" min="0" max="100" step="0.1" required/>
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑥ 2秒跳出率 (%) <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑩ 2秒跳出率 (%) <span class="text-red-400">*</span></label>
             <input type="number" name="bounce_2s" id="bounce_2s" class="input-field" placeholder="e.g. 22" min="0" max="100" step="0.1" required/>
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑦ 5秒完播率 (%) <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑪ 5秒完播率 (%) <span class="text-red-400">*</span></label>
             <input type="number" name="completion_5s" id="completion_5s" class="input-field" placeholder="e.g. 84" min="0" max="100" step="0.1" required/>
           </div>
         </div>
@@ -262,11 +273,11 @@
         </h3>
         <div class="grid gap-4 grid-2" style="grid-template-columns: repeat(2, minmax(0,1fr));">
           <div>
-            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑧ 平均播放占比 (%) <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑫ 平均播放占比 (%) <span class="text-red-400">*</span></label>
             <input type="number" name="avg_play_ratio" id="avg_play_ratio" class="input-field" placeholder="e.g. 82" min="0" max="100" step="0.1" required/>
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑨ 平均播放时长 (秒) <span class="text-red-400">*</span></label>
+            <label class="block text-xs text-slate-400 mb-1.5 font-medium">⑬ 平均播放时长 (秒) <span class="text-red-400">*</span></label>
             <input type="number" name="avg_play_duration" id="avg_play_duration" class="input-field" placeholder="e.g. 18.2" min="0" step="0.1" required/>
           </div>
         </div>
@@ -377,12 +388,14 @@ function calcInteraction() {
   const likes = parseFloat(document.getElementById('likes').value) || 0;
   const shares = parseFloat(document.getElementById('shares').value) || 0;
   const collects = parseFloat(document.getElementById('collects').value) || 0;
+  const comments = parseFloat(document.getElementById('comments').value) || 0;
+  const danmaku = parseFloat(document.getElementById('danmaku').value) || 0;
 
   const display = document.getElementById('interaction-display');
   const hidden = document.getElementById('avg_interaction');
 
   if (plays > 0) {
-    const rate = ((likes + shares + collects) / plays * 100).toFixed(2);
+    const rate = ((likes + shares + collects + comments + danmaku) / plays * 100).toFixed(2);
     display.textContent = rate;
     hidden.value = rate;
   } else {
