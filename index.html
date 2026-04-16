@@ -183,7 +183,10 @@
         </button>
         <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
       </div>
-      <p class="text-[9px] text-slate-500 mt-2 px-1">💡 跨设备使用？建议将整个文件夹放入 <span class="text-sky-400/80">OneDrive/百度云</span> 同步。</p>
+      <button onclick="showGHSyncModal()" class="w-full mt-2 flex items-center justify-center space-x-1 px-2 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-[10px] rounded border border-sky-500/30 transition">
+        <iconify-icon icon="ri:github-fill"></iconify-icon>
+        <span>配置 GitHub 云端同步</span>
+      </button>
     </div>
 
     <!-- 每日电台寄语 -->
@@ -208,6 +211,10 @@
       <p class="text-xs text-slate-400 mt-0.5" id="header-period">统计周期: 加载中...</p>
     </div>
     <div class="flex items-center space-x-2 sm:space-x-4">
+      <div id="sys-status" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 rounded-full border border-slate-800 text-[10px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+        <span class="text-slate-400">正在检查服务...</span>
+      </div>
       <div class="header-extra hidden sm:flex items-center space-x-1 px-3 py-1.5 bg-slate-900 rounded-full border border-slate-800">
         <span class="text-xs text-slate-400" id="last-update-time">最后更新: --</span>
       </div>
@@ -472,6 +479,44 @@
 
 </div><!-- .page-body -->
 
+<!-- GitHub 同步配置弹窗 -->
+<div id="gh-sync-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+  <div class="glass-panel w-full max-w-md p-6 rounded-2xl shadow-2xl border border-sky-500/20">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-lg font-bold flex items-center">
+        <iconify-icon icon="ri:github-fill" class="mr-2 text-2xl"></iconify-icon> GitHub 云端同步配置
+      </h3>
+      <button onclick="closeGHSyncModal()" class="text-slate-400 hover:text-white transition">
+        <iconify-icon icon="ri:close-line" class="text-2xl"></iconify-icon>
+      </button>
+    </div>
+    
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">GitHub Token (PAT)</label>
+        <input type="password" id="gh-token" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-sky-500 focus:border-sky-500" placeholder="ghp_xxxxxxxxxxxx">
+        <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">需要仓库 (repo) 写入权限。可在 GitHub Settings > Developer settings > Personal access tokens 中创建。</p>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">仓库名称 (Owner/Repo)</label>
+        <input type="text" id="gh-repo" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-sky-500 focus:border-sky-500" placeholder="username/repository-name">
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">数据文件路径</label>
+        <input type="text" id="gh-path" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-sky-500 focus:border-sky-500" value="data/videodata.db">
+      </div>
+
+      <div class="pt-2">
+        <button onclick="saveGHSyncConfig()" class="w-full bg-sky-500 hover:bg-sky-600 text-white py-2.5 rounded-lg font-bold transition flex items-center justify-center">
+          <iconify-icon icon="ri:save-line" class="mr-2"></iconify-icon> 保存并同步
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 手机底部导航 -->
 <nav class="bottom-nav">
   <a href="javascript:showPanel('dashboard')" id="mob-nav-dashboard" class="active">
@@ -617,9 +662,17 @@ async function importData(event) {
             const isStatic = window.location.hostname.includes('github.io') || (window.location.protocol === 'file:' && !window.location.hostname);
             
             if (isStatic) {
-                // 静态环境直接存 LocalStorage
+                // 静态环境
+                // 如果启用了 GitHub 同步，则会自动调用 mock-api.js 里的封装逻辑
                 localStorage.setItem('videodata', JSON.stringify(data));
-                alert('导入成功 (LocalStorage)');
+                
+                // 强制同步到 GitHub
+                if (typeof saveDB === 'function') {
+                    await saveDB(data);
+                    alert('导入并同步到 GitHub 成功！');
+                } else {
+                    alert('导入本地成功！(LocalStorage)');
+                }
                 location.reload();
             } else {
                 // 后端环境，通过 API 批量导入
@@ -641,6 +694,37 @@ async function importData(event) {
         }
     };
     reader.readAsText(file);
+}
+
+// ── GitHub 同步配置 ─────────────────────────
+function showGHSyncModal() {
+    const config = JSON.parse(localStorage.getItem('gh_sync_config') || '{}');
+    document.getElementById('gh-token').value = config.token || '';
+    document.getElementById('gh-repo').value = config.repo || '';
+    document.getElementById('gh-path').value = config.path || 'data/videodata.db';
+    document.getElementById('gh-sync-modal').classList.remove('hidden');
+}
+
+function closeGHSyncModal() {
+    document.getElementById('gh-sync-modal').classList.add('hidden');
+}
+
+function saveGHSyncConfig() {
+    const config = {
+        token: document.getElementById('gh-token').value.trim(),
+        repo: document.getElementById('gh-repo').value.trim(),
+        path: document.getElementById('gh-path').value.trim()
+    };
+
+    if (!config.token || !config.repo) {
+        alert('请填写完整的 Token 和仓库名称');
+        return;
+    }
+
+    localStorage.setItem('gh_sync_config', JSON.stringify(config));
+    alert('配置已保存！正在尝试同步...');
+    closeGHSyncModal();
+    location.reload(); // 刷新页面以触发 mock-api 加载云端数据
 }
 
 // ── 入口 ─────────────────────────────────────
@@ -1053,11 +1137,19 @@ async function loadAllData() {
     updateHeaderPeriod(allData);
     const timeEl = document.getElementById('last-update-time');
     if (timeEl) timeEl.textContent = '最后更新: ' + new Date().toLocaleString('zh-CN', {hour:'2-digit',minute:'2-digit'});
-    document.getElementById('sys-status').innerHTML =
-      `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span><span class="text-green-400">数据实时同步中</span>`;
+    
+    // 更新服务连接状态
+    const statusEl = document.getElementById('sys-status');
+    if (statusEl) {
+        statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span><span class="text-green-400">数据库已连接 (本地)</span>`;
+        statusEl.classList.remove('hidden');
+    }
   } catch(e) {
-    document.getElementById('sys-status').innerHTML =
-      `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-400">服务未连接</span>`;
+    const statusEl = document.getElementById('sys-status');
+    if (statusEl) {
+        statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span class="text-amber-400">浏览器缓存模式 (GitHub/离线)</span>`;
+        statusEl.classList.remove('hidden');
+    }
     showFallback();
   } finally {
     icon.classList.remove('animate-spin');
