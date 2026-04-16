@@ -696,6 +696,76 @@ async function importData(event) {
     reader.readAsText(file);
 }
 
+// ========== forceSaveToGH 函数 - GitHub 强制同步核心函数 ==========
+async function forceSaveToGH() {
+    const config = JSON.parse(localStorage.getItem('gh_sync_config') || '{}');
+    if (!config.token || !config.repo) {
+        console.error('未配置 GitHub 同步');
+        return false;
+    }
+
+    try {
+        // 获取当前所有数据
+        let dataToSync = [];
+        const storedData = localStorage.getItem('videodata');
+        if (storedData) {
+            dataToSync = JSON.parse(storedData);
+        } else {
+            // 如果没有数据，创建一个空的数组作为初始化
+            dataToSync = [];
+        }
+
+        // 准备文件路径
+        const filePath = config.path || 'data/videodata.db';
+        const apiUrl = `https://api.github.com/repos/${config.repo}/contents/${filePath}`;
+
+        // 1. 获取当前文件的 sha（如果文件已存在）
+        let sha = '';
+        const getRes = await fetch(apiUrl, {
+            headers: { 'Authorization': `token ${config.token}` }
+        });
+        
+        if (getRes.ok) {
+            const fileInfo = await getRes.json();
+            sha = fileInfo.sha;
+        } else if (getRes.status !== 404) {
+            // 如果是其他错误（如401、403），直接返回失败
+            console.error('GitHub API 错误:', getRes.status);
+            return false;
+        }
+
+        // 2. 将数据转换为 Base64
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(dataToSync, null, 2))));
+
+        // 3. 提交到 GitHub
+        const putRes = await fetch(apiUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${config.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `初始化/同步云端数据 [${new Date().toLocaleString()}]`,
+                content: content,
+                sha: sha
+            })
+        });
+
+        if (putRes.ok) {
+            console.log('✅ 数据已成功同步到 GitHub');
+            return true;
+        } else {
+            const errorText = await putRes.text();
+            console.error('GitHub 同步失败:', putRes.status, errorText);
+            return false;
+        }
+    } catch (error) {
+        console.error('同步出错:', error);
+        return false;
+    }
+}
+// ========== forceSaveToGH 函数结束 ==========
+
 // ── GitHub 同步配置 ─────────────────────────
 function showGHSyncModal() {
     const config = JSON.parse(localStorage.getItem('gh_sync_config') || '{}');
@@ -754,11 +824,14 @@ document.addEventListener('DOMContentLoaded', () => {
     showPanel('ai');
   }
 
-  document.getElementById('chat-input').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-      sendChatMessage();
-    }
-  });
+  const chatInput = document.getElementById('chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    });
+  }
 });
 
 async function sendChatMessage() {

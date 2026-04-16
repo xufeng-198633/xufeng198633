@@ -22,13 +22,10 @@
       });
       if (!res.ok) return null;
       const json = await res.json();
-      // GitHub 返回的是 Base64 编码的内容
       const content = decodeURIComponent(escape(atob(json.content)));
-      // 解析 NeDB 格式 (每行一个 JSON) 或标准 JSON
       try {
         return JSON.parse(content);
       } catch(e) {
-        // 尝试处理 NeDB 格式
         return content.trim().split('\n').map(line => JSON.parse(line));
       }
     } catch(e) {
@@ -46,17 +43,15 @@
     const apiUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
 
     try {
-      // 1. 获取当前文件的 sha
+      let sha = '';
       const getRes = await fetch(apiUrl, {
         headers: { 'Authorization': `token ${token}` }
       });
-      let sha = '';
       if (getRes.ok) {
         const fileInfo = await getRes.json();
         sha = fileInfo.sha;
       }
 
-      // 2. 提交新内容
       const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
       const putRes = await fetch(apiUrl, {
         method: 'PUT',
@@ -88,13 +83,11 @@
     }
   ];
 
-  // 初始化 LocalStorage
   if (!localStorage.getItem('videodata')) {
     localStorage.setItem('videodata', JSON.stringify(SEED_DATA));
   }
 
   async function getDB() {
-    // 优先尝试从 GitHub 同步
     const ghData = await fetchGHData();
     if (ghData) {
       localStorage.setItem('videodata', JSON.stringify(ghData));
@@ -105,10 +98,15 @@
 
   async function saveDB(data) {
     localStorage.setItem('videodata', JSON.stringify(data));
-    // 异步同步到 GitHub
     const success = await saveGHData(data);
     if (success) console.log('✅ 数据已成功同步到 GitHub 仓库');
+    return success;
   }
+
+  // ========== 关键修复：将函数暴露到全局 ==========
+  window.getDB = getDB;
+  window.saveDB = saveDB;
+  // ============================================
 
   function mockResponse(data) {
     return Promise.resolve({
@@ -123,7 +121,6 @@
     let url = typeof input === 'string' ? input : input.url;
     let method = (init && init.method) ? init.method.toUpperCase() : 'GET';
     
-    // 如果是请求 GitHub API 或者是外部资源，不拦截
     if (!url.includes('/api/')) {
       return originalFetch.apply(this, arguments);
     }
@@ -200,7 +197,6 @@
     }
   };
 
-  // 在页面顶部注入一个醒目的警告横幅（如果是 GitHub Pages 环境且没配置 Token）
   window.addEventListener('DOMContentLoaded', () => {
     const { token } = getGHConfig();
     if (!token && window.location.hostname.includes('github.io')) {
