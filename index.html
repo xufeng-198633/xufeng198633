@@ -709,7 +709,7 @@ function closeGHSyncModal() {
     document.getElementById('gh-sync-modal').classList.add('hidden');
 }
 
-function saveGHSyncConfig() {
+async function saveGHSyncConfig() {
     const config = {
         token: document.getElementById('gh-token').value.trim(),
         repo: document.getElementById('gh-repo').value.trim(),
@@ -722,9 +722,23 @@ function saveGHSyncConfig() {
     }
 
     localStorage.setItem('gh_sync_config', JSON.stringify(config));
-    alert('配置已保存！正在尝试同步...');
+    
+    // 立即尝试同步本地数据到云端 (以创建缺失的文件)
+    const saveBtn = document.querySelector('#gh-sync-modal button[onclick="saveGHSyncConfig()"]');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<iconify-icon icon="ri:loader-4-line" class="animate-spin mr-2"></iconify-icon> 正在初始化云端数据...';
+
+    const success = await forceSaveToGH();
+    
+    if (success) {
+        alert('配置已成功保存！云端文件 data/videodata.db 已同步创建。');
+    } else {
+        alert('配置已保存，但初次同步失败。请检查：\n1. Token 是否有 repo 权限\n2. 仓库名是否正确\n3. 仓库中是否存在 data/ 文件夹（如果没有，GitHub 可能会报错，建议手动在仓库里随便传个文件创建该文件夹）');
+    }
+    
     closeGHSyncModal();
-    location.reload(); // 刷新页面以触发 mock-api 加载云端数据
+    location.reload(); 
 }
 
 // ── 入口 ─────────────────────────────────────
