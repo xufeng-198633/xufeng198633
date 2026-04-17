@@ -23,6 +23,16 @@ const db = new Datastore({
   autoload: true
 });
 
+const aiHistoryDb = new Datastore({
+  filename: path.join(__dirname, 'data', 'ai_history.db'),
+  autoload: true
+});
+
+const copywritingDb = new Datastore({
+  filename: path.join(__dirname, 'data', 'copywriting.db'),
+  autoload: true
+});
+
 // 确保 data 目录存在
 const fs = require('fs');
 const dataDir = path.join(__dirname, 'data');
@@ -165,10 +175,10 @@ app.post('/api/data', (req, res) => {
     }
   }
 
-  // 平均互动率自动计算：(点赞 + 分享 + 收藏) / 播放量 * 100
+  // 平均互动率自动计算：(点赞 + 分享 + 收藏 + 评论 + 弹幕) / 播放量 * 100
   const plays = parseFloat(body.plays) || 0;
   if (plays > 0) {
-    const interaction = ((parseFloat(body.likes)||0) + (parseFloat(body.shares)||0) + (parseFloat(body.collects)||0)) / plays * 100;
+    const interaction = ((parseFloat(body.likes)||0) + (parseFloat(body.shares)||0) + (parseFloat(body.collects)||0) + (parseFloat(body.comments)||0) + (parseFloat(body.danmaku)||0)) / plays * 100;
     body.avg_interaction = parseFloat(interaction.toFixed(2));
   } else {
     body.avg_interaction = 0;
@@ -181,12 +191,16 @@ app.post('/api/data', (req, res) => {
       // 更新已有数据
       db.update({ date: body.date }, { $set: body }, {}, (err2) => {
         if (err2) return res.status(500).json({ error: err2.message });
+        // 强制持久化到磁盘
+        db.persistence.compactDatafile();
         res.json({ success: true, action: 'updated', date: body.date });
       });
     } else {
       // 插入新数据
       db.insert(body, (err2, newDoc) => {
         if (err2) return res.status(500).json({ error: err2.message });
+        // 强制持久化到磁盘
+        db.persistence.compactDatafile();
         res.json({ success: true, action: 'inserted', id: newDoc._id });
       });
     }
@@ -204,28 +218,99 @@ app.delete('/api/data/:id', (req, res) => {
 // POST /api/ai - 调用AI模块
 app.post('/api/ai', async (req, res) => {
   try {
-    const { prompt } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
+    const { prompt, messages, type, metadata } = req.body;
+    console.log('Full AI Request Body:', JSON.stringify(req.body, null, 2));
+    if (!prompt && (!messages || !Array.isArray(messages) || messages.length === 0)) {
+      console.warn('AI Request validation failed. Body:', req.body);
+      return res.status(400).json({ error: 'Valid prompt or non-empty messages array is required' });
     }
-    const response = await ai.getCompletion(prompt);
+    const response = await ai.getCompletion(prompt || '', messages || []);
+    
+    // 自动存入 AI 历史数据库
+    const historyDoc = {
+      timestamp: new Date().toISOString(),
+      type: type || 'chat', // 'copywriting', 'analysis', 'chat'
+      prompt: prompt || (messages && messages.length > 0 ? messages[messages.length - 1].content : ''),
+      result: response,
+      metadata: metadata || {}
+    };
+    
+    aiHistoryDb.insert(historyDoc, (err) => {
+      if (err) console.error('Failed to save AI history:', err);
+      else aiHistoryDb.persistence.compactDatafile();
+    });
+
     res.json({ response });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// ─────────────────────────────────────────────
+// GET /api/ai/history - 获取AI历史记录
+app.get('/api/ai/history', (req, res) => {
+  const type = req.query.type;
+  const query = type ? { type } : {};
+  aiHistoryDb.find(query).sort({ timestamp: -1 }).limit(50).exec((err, docs) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(docs);
+  });
+});
+
+// ── 文案列表相关接口 ───────────────────────
+
+// GET /api/copywriting - 获取保存的文案列表
+app.get('/api/copywriting', (req, res) => {
+  copywritingDb.find({}).sort({ timestamp: -1 }).exec((err, docs) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(docs);
+  });
+});
+
+// POST /api/copywriting - 保存文案
+app.post('/api/copywriting', (req, res) => {
+  const body = req.body;
+  if (!body.text) {
+    return res.status(400).json({ error: 'Text is required' });
+  }
+  
+  const doc = {
+    ...body,
+    timestamp: body.timestamp || Date.now(),
+    time: body.time || new Date().toLocaleString('zh-CN', { hour12: false }),
+    used: body.used || false
+  };
+
+  copywritingDb.insert(doc, (err, newDoc) => {
+    if (err) return res.status(500).json({ error: err.message });
+    copywritingDb.persistence.compactDatafile();
+    res.json({ success: true, id: newDoc._id });
+  });
+});
+
+// DELETE /api/copywriting/:id - 删除文案
+app.delete('/api/copywriting/:id', (req, res) => {
+  copywritingDb.remove({ _id: req.params.id }, {}, (err, n) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, removed: n });
+  });
+});
+
+// PATCH /api/copywriting/:id - 更新文案状态 (如 used)
+app.patch('/api/copywriting/:id', (req, res) => {
+  copywritingDb.update({ _id: req.params.id }, { $set: req.body }, {}, (err, n) => {
+    if (err) return res.status(500).json({ error: err.message });
+    copywritingDb.persistence.compactDatafile();
+    res.json({ success: true, updated: n });
+  });
+});
+
 // 启动服务
-// ─────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`
-╔══════════════════════════════════════════╗
-║   短视频数据看板 服务已启动               ║
-║   http://localhost:${PORT}                  ║
-║   主看板:   http://localhost:${PORT}/index.html ║
-║   明细表:   http://localhost:${PORT}/details.html ║
-║   数据录入: http://localhost:${PORT}/input.html  ║
-╚══════════════════════════════════════════╝
+--------------------------------------------
+   短视频数据看板 服务已启动
+   本地地址: http://localhost:${PORT}
+   数据录入: http://localhost:${PORT}/input.html
+--------------------------------------------
   `);
 });

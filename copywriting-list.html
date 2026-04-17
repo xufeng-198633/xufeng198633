@@ -171,6 +171,10 @@
 </div>
 
 <script>
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3388/api' 
+  : '/api';
+
 let currentList = [];
 let filteredList = []; // 用于分页和搜索的列表
 let currentPage = 1;
@@ -180,14 +184,25 @@ document.addEventListener('DOMContentLoaded', () => {
     loadList();
 });
 
-function loadList() {
-    const listJson = localStorage.getItem('copywritingList');
-    currentList = listJson ? JSON.parse(listJson) : [];
+async function loadList() {
+    try {
+        const response = await fetch(`${API}/copywriting`);
+        if (!response.ok) throw new Error('无法从服务器加载数据');
+        currentList = await response.json();
+    } catch (err) {
+        console.error('从服务器加载失败，尝试从本地缓存加载:', err);
+        const listJson = localStorage.getItem('copywritingList');
+        currentList = listJson ? JSON.parse(listJson) : [];
+    }
     
     // 确保所有旧数据都有 used 属性
     currentList.forEach(item => {
         if (typeof item.used === 'undefined') {
             item.used = false;
+        }
+        // 确保有 id 属性 (后端返回的是 _id)
+        if (!item.id && item._id) {
+            item.id = item._id;
         }
     });
 
@@ -196,14 +211,7 @@ function loadList() {
         if (a.timestamp && b.timestamp) {
             return b.timestamp - a.timestamp; // 倒序
         }
-        try {
-            // 兼容旧数据
-            const dateA = new Date(a.time);
-            const dateB = new Date(b.time);
-            return dateB - dateA; // 倒序
-        } catch (e) {
-            return 0;
-        }
+        return 0;
     });
     
     filteredList = [...currentList]; // 初始时，过滤列表与当前列表相同
@@ -350,35 +358,59 @@ function copyItem(id, btn) {
     });
 }
 
-function deleteItem(id) {
+async function deleteItem(id) {
     if (confirm('确定要删除这条文案吗？')) {
-        currentList = currentList.filter(i => i.id !== id);
-        localStorage.setItem('copywritingList', JSON.stringify(currentList));
-        // 删除后重新加载列表，确保分页正确
-        loadList(); 
+        try {
+            const response = await fetch(`${API}/copywriting/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('删除失败');
+            // 删除后重新加载列表
+            loadList();
+        } catch (err) {
+            console.error('删除失败:', err);
+            // 降级处理：仅从本地缓存删除
+            currentList = currentList.filter(i => i.id !== id);
+            localStorage.setItem('copywritingList', JSON.stringify(currentList));
+            loadList();
+        }
     }
 }
 
-function toggleUsedStatus(id, btn) {
+async function toggleUsedStatus(id, btn) {
     const itemIndex = currentList.findIndex(i => i.id === id);
     if (itemIndex === -1) return;
 
-    currentList[itemIndex].used = !currentList[itemIndex].used;
-    localStorage.setItem('copywritingList', JSON.stringify(currentList));
-    
-    // UI Feedback
-    const icon = btn.querySelector('iconify-icon');
-    if (currentList[itemIndex].used) {
-        icon.setAttribute('icon', 'ri:check-double-line');
-        btn.classList.replace('text-slate-400', 'text-green-400');
-        btn.setAttribute('title', '取消标记为已使用');
-    } else {
-        icon.setAttribute('icon', 'ri:check-line');
-        btn.classList.replace('text-green-400', 'text-slate-400');
-        btn.setAttribute('title', '标记为已使用');
+    const newUsedStatus = !currentList[itemIndex].used;
+
+    try {
+        const response = await fetch(`${API}/copywriting/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ used: newUsedStatus })
+        });
+        if (!response.ok) throw new Error('更新状态失败');
+        
+        currentList[itemIndex].used = newUsedStatus;
+        localStorage.setItem('copywritingList', JSON.stringify(currentList));
+        
+        // UI Feedback
+        const icon = btn.querySelector('iconify-icon');
+        if (newUsedStatus) {
+            icon.setAttribute('icon', 'ri:check-double-line');
+            btn.classList.replace('text-slate-400', 'text-green-400');
+            btn.setAttribute('title', '取消标记为已使用');
+        } else {
+            icon.setAttribute('icon', 'ri:check-line');
+            btn.classList.replace('text-green-400', 'text-slate-400');
+            btn.setAttribute('title', '标记为已使用');
+        }
+        renderList();
+    } catch (err) {
+        console.error('更新状态失败:', err);
+        // 降级处理
+        currentList[itemIndex].used = newUsedStatus;
+        localStorage.setItem('copywritingList', JSON.stringify(currentList));
+        renderList();
     }
-    // 重新渲染列表以更新主题名称旁的已使用图标
-    renderList();
 }
 </script>
 </body>

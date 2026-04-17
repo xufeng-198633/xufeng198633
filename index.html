@@ -598,7 +598,9 @@ function switchAiTab(tabName) {
     }
 }
 
-const API = 'http://localhost:3388/api';
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3388/api' 
+  : '/api';
 const DEEPSEEK_API_KEY = 'sk-0e4d0a22f0d2478a8ecdfed174be195c'; // ！！！警告：API密钥暴露在前端，请勿直接部署到线上！！！
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 
@@ -816,6 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAllData(); 
   updateDailyQuote();
   populateCopywritingThemes();
+  loadChatHistory();
   
   // 处理 URL 参数，判断是否显示 AI 面板
   const urlParams = new URLSearchParams(window.location.search);
@@ -834,6 +837,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+function loadChatHistory() {
+  const history = JSON.parse(localStorage.getItem('ai_chat_history') || '[]');
+  const container = document.getElementById('chat-history');
+  container.innerHTML = '';
+  history.forEach(msg => {
+    addMessageToHistory(msg.role === 'user' ? 'user' : 'bot', msg.content, false);
+  });
+}
+
 async function sendChatMessage() {
   const input = document.getElementById('chat-input');
   const message = input.value.trim();
@@ -845,18 +857,21 @@ async function sendChatMessage() {
   addMessageToHistory('bot', '正在输入中...');
 
   try {
-    const response = await fetch(DEEPSEEK_API_URL, {
+    const history = JSON.parse(localStorage.getItem('ai_chat_history') || '[]');
+    const messages = history.map(m => ({ role: m.role, content: m.content }));
+    messages.push({ role: 'user', content: message });
+    
+    console.log('Sending messages to API:', messages);
+
+    const response = await fetch(`${API}/ai`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { content: '你是一个数据分析和文案生成的助手。', role: 'system' },
-          { content: message, role: 'user' }
-        ]
+        prompt: message,
+        messages: messages,
+        type: 'chat'
       })
     });
 
@@ -865,26 +880,33 @@ async function sendChatMessage() {
     }
 
     const data = await response.json();
-    const reply = data.choices[0].message.content;
+    const reply = data.response;
 
     // 更新 "正在输入中..." 的消息
     const thinkingMessage = document.querySelector('#chat-history .bot-message-thinking');
     if(thinkingMessage) {
         thinkingMessage.querySelector('p').textContent = reply;
         thinkingMessage.classList.remove('bot-message-thinking');
+        // 保存到历史
+        const newHistory = JSON.parse(localStorage.getItem('ai_chat_history') || '[]');
+        newHistory.push({ role: 'user', content: message });
+        newHistory.push({ role: 'assistant', content: reply });
+        // 只保留最近 20 条对话 (10 轮)
+        if (newHistory.length > 20) newHistory.splice(0, newHistory.length - 20);
+        localStorage.setItem('ai_chat_history', JSON.stringify(newHistory));
     }
 
   } catch (error) {
-    console.error('Error calling DeepSeek API:', error);
+    console.error('Error calling AI API:', error);
     const thinkingMessage = document.querySelector('#chat-history .bot-message-thinking');
     if(thinkingMessage) {
-        thinkingMessage.querySelector('p').textContent = '抱歉，调用AI服务时出错，请检查API Key或网络连接。';
+        thinkingMessage.querySelector('p').textContent = '抱歉，调用AI服务时出错，请检查网络连接。\n错误详情: ' + error.message;
         thinkingMessage.classList.remove('bot-message-thinking');
     }
   }
 }
 
-function addMessageToHistory(sender, message) {
+function addMessageToHistory(sender, message, save = true) {
   const history = document.getElementById('chat-history');
   const messageDiv = document.createElement('div');
   
@@ -962,32 +984,51 @@ function copyToClipboard(btn, encodedText) {
     });
 }
 
-function addToCopyList(btn, encodedTheme, encodedText) {
+async function addToCopyList(btn, encodedTheme, encodedText) {
     const theme = decodeURIComponent(encodedTheme);
     const text = decodeURIComponent(encodedText);
-    const list = JSON.parse(localStorage.getItem('copywritingList') || '[]');
-    list.push({
+    
+    const item = {
         id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
         theme: theme !== '请选择主题' ? theme : '自定义主题',
         text: text,
         time: new Date().toLocaleString('zh-CN', { hour12: false }),
-        timestamp: new Date().getTime(),
-        used: false // 新增 used 属性，默认为 false
-    });
-    localStorage.setItem('copywritingList', JSON.stringify(list));
-    
-    // UI Feedback
-    const icon = btn.querySelector('iconify-icon');
-    const originalIcon = icon.getAttribute('icon');
-    icon.setAttribute('icon', 'ri:check-double-line');
-    btn.classList.replace('text-emerald-400', 'text-green-500');
-    btn.setAttribute('title', '已添加');
-    
-    setTimeout(() => {
-        icon.setAttribute('icon', originalIcon);
-        btn.classList.replace('text-green-500', 'text-emerald-400');
-        btn.setAttribute('title', '添加到文案页面');
-    }, 2000);
+        timestamp: Date.now(),
+        used: false
+    };
+
+    try {
+        // 先存本地作为缓存
+        const list = JSON.parse(localStorage.getItem('copywritingList') || '[]');
+        list.push(item);
+        localStorage.setItem('copywritingList', JSON.stringify(list));
+
+        // 再存服务器
+        const response = await fetch(`${API}/copywriting`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item)
+        });
+
+        if (!response.ok) throw new Error('写入服务器失败');
+
+        // UI Feedback
+        const icon = btn.querySelector('iconify-icon');
+        const originalIcon = icon.getAttribute('icon');
+        icon.setAttribute('icon', 'ri:check-double-line');
+        btn.classList.replace('text-emerald-400', 'text-green-500');
+        btn.setAttribute('title', '已添加');
+        
+        setTimeout(() => {
+            icon.setAttribute('icon', originalIcon);
+            btn.classList.replace('text-green-500', 'text-emerald-400');
+            btn.setAttribute('title', '添加到文案页面');
+        }, 2000);
+
+    } catch (err) {
+        console.error('保存文案失败:', err);
+        alert('保存文案到数据库失败，已存入本地浏览器缓存。');
+    }
 }
 
 function readFile(file) {
@@ -1059,18 +1100,15 @@ async function generateCopywriting() {
     }
 
     try {
-        const response = await fetch(DEEPSEEK_API_URL, {
+        const response = await fetch(`${API}/ai`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'deepseek-chat',
-                messages: [
-                    { content: finalPrompt, role: 'user' }
-                ],
-                temperature: 0.8,
+                prompt: finalPrompt,
+                type: 'copywriting',
+                metadata: { theme: theme }
             })
         });
 
@@ -1079,7 +1117,7 @@ async function generateCopywriting() {
         }
 
         const data = await response.json();
-        const reply = data.choices[0].message.content;
+        const reply = data.response;
         
         const lines = reply.split('###').map(line => line.trim()).filter(line => line !== '');
         
@@ -1177,18 +1215,15 @@ ${JSON.stringify(summary, null, 2)}
 **注意**：请使用专业、干练的行业术语（如：GPM、黄金3秒、完播率、互动率等）。直接输出分析内容，不要有任何开场白或结尾套话。为了让报告更有层次感，请多使用 **加粗** 来强调关键数据。`;
 
   try {
-    const response = await fetch(DEEPSEEK_API_URL, {
+    const response = await fetch(`${API}/ai`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { content: prompt, role: 'user' }
-        ],
-        temperature: 0.5, // 分析任务需要更严谨
+        prompt: prompt,
+        type: 'analysis',
+        metadata: { period: summary.period }
       })
     });
 
@@ -1197,15 +1232,40 @@ ${JSON.stringify(summary, null, 2)}
     }
 
     const data = await response.json();
-    const reply = data.choices[0].message.content;
+    const reply = data.response;
     
     // 使用 marked 库将 Markdown 转换为 HTML
-    resultDiv.innerHTML = marked.parse(reply);
+    resultDiv.innerHTML = `
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-700/50">
+            <span class="text-xs text-slate-500">分析周期: ${summary.period}</span>
+            <button onclick="downloadAnalysisReport(\`${encodeURIComponent(reply)}\`)" class="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg text-xs font-medium transition-all">
+                <iconify-icon icon="ri:download-cloud-2-line"></iconify-icon>
+                <span>下载报告 (.md)</span>
+            </button>
+        </div>
+        <div class="markdown-body">
+            ${marked.parse(reply)}
+        </div>
+    `;
 
   } catch (error) {
     console.error('Error calling DeepSeek API for analysis:', error);
     resultDiv.textContent = '抱歉，生成分析报告时出错。请检查API Key或网络连接。\n错误详情: ' + error.message;
   }
+}
+
+function downloadAnalysisReport(encodedContent) {
+    const content = decodeURIComponent(encodedContent);
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = `AI数据分析报告_${date}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 async function loadAllData() {

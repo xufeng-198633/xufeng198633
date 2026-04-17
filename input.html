@@ -426,7 +426,7 @@ function checkServer() {
     .then(r => r.json())
     .then(data => {
       const el = document.getElementById('server-status');
-      el.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span><span class="text-green-400">已连接</span>`;
+      el.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500"></span><span class="text-green-400">数据库已连接 (本地)</span>`;
       if (data) {
         document.getElementById('last-date').textContent = `最近: ${data.date}`;
         document.getElementById('last-plays').textContent = `播放量: ${data.plays?.toLocaleString()}`;
@@ -434,8 +434,8 @@ function checkServer() {
     })
     .catch(() => {
       document.getElementById('server-status').innerHTML =
-        `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-400">未连接</span>`;
-      document.getElementById('last-date').textContent = '服务未启动';
+        `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span class="text-amber-400">浏览器缓存模式 (数据不入库)</span>`;
+      document.getElementById('last-date').textContent = '未连接到 videodata.db';
     });
 }
 
